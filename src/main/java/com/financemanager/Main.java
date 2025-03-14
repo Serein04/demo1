@@ -1,15 +1,14 @@
 package com.financemanager;
 
-import javax.swing.UnsupportedLookAndFeelException;
-
 import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
 import com.financemanager.model.TransactionManager;
 import com.financemanager.view.StartFrame;
+import javax.swing.UnsupportedLookAndFeelException;
 
 /**
- * 个人财务管理器应用程序入口类
+ * 个人财务管理器应用程序入口类 yiyiyiiy
  */
 public class Main {
     public static void main(String[] args) {
