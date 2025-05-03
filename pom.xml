@@ -42,6 +42,13 @@
             <artifactId>logback-classic</artifactId>
             <version>1.4.7</version>
         </dependency>
+
+        <!-- JFreeChart for charting -->
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.5.3</version> <!-- 使用较新的稳定版本 -->
+        </dependency>
     </dependencies>
 
     <build>
@@ -91,4 +98,4 @@
             </plugin>
         </plugins>
     </build>
-</project> 
+</project>
