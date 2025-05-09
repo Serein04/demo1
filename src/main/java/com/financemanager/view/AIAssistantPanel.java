@@ -66,37 +66,10 @@ public class AIAssistantPanel extends JPanel {
     }
     
     /**
-     * 判断是否是简单问候
-     */
-    private boolean isSimpleGreeting(String message) {
-        message = message.toLowerCase().trim();
-        String[] greetings = {"你好", "早上好", "下午好", "晚上好", "嗨", "hi", "hello", "hey", "哈喽", "您好"};
-        
-        for (String greeting : greetings) {
-            if (message.contains(greeting)) {
-                return true;
-            }
-        }
-        // 检查是否是简短的问候语（少于10个字符且不包含特定关键词）
-        if (message.length() < 10) {
-            // 可以添加一些关键词排除，例如 "分析", "预算" 等，避免将简短的分析请求误判为问候
-            if (!message.contains("分析") && !message.contains("预算") && !message.contains("建议") && !message.contains("情况")) {
-                 return true;
-            }
-        }
-        return false;
-    }
-    
-    /**
      * 处理用户消息的核心逻辑
      */
     private void processUserMessage(String message) {
-        if (isSimpleGreeting(message)) {
-            String greeting = "您好！很高兴为您服务。您可以直接询问我关于您的财务情况，或使用上方的快捷分析功能按钮。";
-            viewPanel.displayMessage("AI助手", greeting);
-            return;
-        }
-
+        // 直接调用 processAnalysisRequest 处理所有用户消息
         processAnalysisRequest(message);
     }
     
