@@ -1,11 +1,13 @@
 package com.financemanager.view;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.SwingWorker;
 
@@ -23,19 +25,29 @@ public class AIAssistantPanel extends JPanel {
     private final ExpenseAnalyzer analyzer;
     private final AIService chatService; // 修改类型
     private final AIAssistantViewPanel viewPanel;
+    private final MainFrame mainFrame; // 添加 MainFrame 引用
     
     private String currentAIResponseId = null; // 用于跟踪流式响应,确保AI回复连续性
 
     /**
      * 构造函数
      */
-    public AIAssistantPanel(TransactionManager transactionManager, ExpenseAnalyzer analyzer) {
+    public AIAssistantPanel(TransactionManager transactionManager, ExpenseAnalyzer analyzer, MainFrame mainFrame) { // 添加 MainFrame 参数
         this.transactionManager = transactionManager;
         this.analyzer = analyzer;
         this.chatService = new AIService(); // 修改实例化
         this.viewPanel = new AIAssistantViewPanel();
+        this.mainFrame = mainFrame; // 保存 MainFrame 引用
         
         setLayout(new BorderLayout());
+
+        // 添加返回主界面按钮
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton backButton = new JButton("返回主界面");
+        backButton.addActionListener(e -> this.mainFrame.returnToMainScreen());
+        topPanel.add(backButton);
+        add(topPanel, BorderLayout.NORTH);
+        
         add(viewPanel, BorderLayout.CENTER);
         
         // 设置视图的回调，将视图的用户操作连接到控制器的方法

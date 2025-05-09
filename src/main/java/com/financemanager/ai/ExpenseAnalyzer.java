@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.financemanager.model.BudgetManager;
 import com.financemanager.model.Transaction;
 
 /**
@@ -241,79 +240,6 @@ public class ExpenseAnalyzer {
         }
         
         return seasonalPatterns;
-    }
-    
-    /**
-     * 生成预算建议
-     * @param transactions 交易记录列表
-     * @param budgetManager 预算管理器
-     * @return 预算建议
-     */
-    public Map<String, Double> generateBudgetSuggestions(List<Transaction> transactions, BudgetManager budgetManager) {
-        // 获取最近几个月的交易记录
-        LocalDate now = LocalDate.now();
-        LocalDate startDate = now.minusMonths(MONTHS_TO_ANALYZE);
-        List<Transaction> recentTransactions = transactions.stream()
-                .filter(t -> !t.getDate().isBefore(startDate))
-                .collect(Collectors.toList());
-        
-        // 按类别计算平均月度支出
-        Map<String, Double> categoryMonthlyAverages = new HashMap<>();
-        Map<YearMonth, Map<String, Double>> monthCategoryExpenses = new HashMap<>();
-        
-        // 初始化月份数据结构
-        for (int i = 0; i < MONTHS_TO_ANALYZE; i++) {
-            YearMonth yearMonth = YearMonth.from(now.minusMonths(i));
-            monthCategoryExpenses.put(yearMonth, new HashMap<>());
-        }
-        
-        // 计算每个月每个类别的总支出
-        for (Transaction t : recentTransactions) {
-            if (t.isExpense()) {
-                YearMonth yearMonth = YearMonth.from(t.getDate());
-                if (monthCategoryExpenses.containsKey(yearMonth)) {
-                    String category = t.getCategory();
-                    Map<String, Double> categoryExpenses = monthCategoryExpenses.get(yearMonth);
-                    categoryExpenses.put(category, categoryExpenses.getOrDefault(category, 0.0) + t.getAmount());
-                }
-            }
-        }
-        
-        // 计算每个类别的月平均支出
-        Set<String> allCategories = new HashSet<>();
-        for (Map<String, Double> categoryExpenses : monthCategoryExpenses.values()) {
-            allCategories.addAll(categoryExpenses.keySet());
-        }
-        
-        for (String category : allCategories) {
-            double totalExpense = 0;
-            int monthCount = 0;
-            for (Map<String, Double> categoryExpenses : monthCategoryExpenses.values()) {
-                if (categoryExpenses.containsKey(category)) {
-                    totalExpense += categoryExpenses.get(category);
-                    monthCount++;
-                }
-            }
-            if (monthCount > 0) {
-                categoryMonthlyAverages.put(category, totalExpense / monthCount);
-            }
-        }
-        
-        // 生成预算建议（基于历史平均值，略微上调以留有余地）
-        Map<String, Double> budgetSuggestions = new HashMap<>();
-        for (Map.Entry<String, Double> entry : categoryMonthlyAverages.entrySet()) {
-            String category = entry.getKey();
-            double averageExpense = entry.getValue();
-            double currentBudget = budgetManager.getCategoryBudget(category);
-            
-            // 如果当前没有设置预算，或者预算明显不合理（与实际支出差异过大）
-            if (currentBudget == 0 || Math.abs(currentBudget - averageExpense) / averageExpense > 0.3) {
-                // 建议预算为平均支出的1.1倍（留有10%的余地）
-                budgetSuggestions.put(category, averageExpense * 1.1);
-            }
-        }
-        
-        return budgetSuggestions;
     }
     
     /**

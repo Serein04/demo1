@@ -73,7 +73,7 @@ public class MainFrame extends JFrame {
         tabbedPane.addTab("分析报告", analysisPanel);
 
         // 创建并添加AI助手选项卡 (AIAssistantPanel 本身已是独立类)
-        AIAssistantPanel aiAssistantPanel = new AIAssistantPanel(transactionManager, analyzer);
+        AIAssistantPanel aiAssistantPanel = new AIAssistantPanel(transactionManager, analyzer, this); // 添加 this 作为参数
         tabbedPane.addTab("AI助手", aiAssistantPanel);
 
         // 设置内容面板

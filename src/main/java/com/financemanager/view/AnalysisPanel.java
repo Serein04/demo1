@@ -193,27 +193,6 @@ public class AnalysisPanel extends JPanel {
             reportPanel.add(seasonalLabel);
         }
 
-        // --- 添加预算建议 ---
-         JLabel suggestionTitle = new JLabel("<html><h2>预算建议</h2></html>");
-         suggestionTitle.setFont(REPORT_FONT);
-        reportPanel.add(suggestionTitle);
-        Map<String, Double> budgetSuggestions = analyzer.generateBudgetSuggestions(transactions, budgetManager);
-        if (budgetSuggestions.isEmpty()) {
-             JLabel noSuggestionLabel = new JLabel("当前预算设置合理，无需调整");
-             noSuggestionLabel.setFont(REPORT_FONT);
-            reportPanel.add(noSuggestionLabel);
-        } else {
-            StringBuilder suggestionsText = new StringBuilder("<html><ul>");
-            for (Map.Entry<String, Double> entry : budgetSuggestions.entrySet()) {
-                 // 使用内联样式增大字体
-                suggestionsText.append(String.format("<li style='font-size: 11px;'>%s: 建议预算%.2f元</li>",
-                        entry.getKey(), entry.getValue()));
-            }
-            suggestionsText.append("</ul></html>");
-             JLabel suggestionLabel = new JLabel(suggestionsText.toString());
-            reportPanel.add(suggestionLabel);
-        }
-
         // --- 添加节省机会分析 ---
          JLabel savingTitle = new JLabel("<html><h2>节省机会</h2></html>");
          savingTitle.setFont(REPORT_FONT);
