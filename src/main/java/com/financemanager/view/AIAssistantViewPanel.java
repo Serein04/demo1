@@ -115,7 +115,9 @@ public class AIAssistantViewPanel extends JPanel {
     }
 
     public void appendToMessage(String chunk) {
-        chatArea.append(chunk);
+        // 移除Markdown星号，可以根据需要扩展到其他Markdown字符
+        String cleanedChunk = chunk.replace("*", ""); 
+        chatArea.append(cleanedChunk);
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
