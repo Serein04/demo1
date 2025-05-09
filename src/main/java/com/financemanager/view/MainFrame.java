@@ -1,9 +1,8 @@
 package com.financemanager.view;
 
-import java.awt.BorderLayout; 
 import javax.swing.JFrame;
-import javax.swing.JPanel; 
 import javax.swing.JTabbedPane;
+
 import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
