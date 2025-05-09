@@ -1,321 +1,68 @@
 package com.financemanager.view;
 
 import java.awt.BorderLayout;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.SwingWorker;
-import javax.swing.border.EmptyBorder;
 
-import com.financemanager.ai.ExpenseAnalyzer;
+import com.financemanager.ai.AIService;
+import com.financemanager.ai.ExpenseAnalyzer; // 修改导入
 import com.financemanager.model.Transaction;
 import com.financemanager.model.TransactionManager;
 
 /**
- * AI助手面板类
- * 提供与AI助手的聊天交互界面
+ * AI助手面板控制器类
+ * 协调AIAssistantViewPanel和AIService
  */
 public class AIAssistantPanel extends JPanel {
     private final TransactionManager transactionManager;
     private final ExpenseAnalyzer analyzer;
+    private final AIService chatService; // 修改类型
+    private final AIAssistantViewPanel viewPanel;
     
-    private JTextArea chatArea;
-    private JTextField inputField;
-    private JButton sendButton;
-    
-    // API相关配置
-    private static final String CONFIG_FILE = "config.properties";
-    private static final String API_ENDPOINT = "https://api.siliconflow.cn/v1/chat/completions";
-    private String apiKey;
-    private final HttpClient httpClient;
-    
-    // 当前AI助手回复的ID，用于流式输出时追加内容
-    private String currentAIResponseId = null;
-    
+    private String currentAIResponseId = null; // 用于跟踪流式响应,确保AI回复连续性
+
     /**
      * 构造函数
      */
     public AIAssistantPanel(TransactionManager transactionManager, ExpenseAnalyzer analyzer) {
         this.transactionManager = transactionManager;
         this.analyzer = analyzer;
-        this.httpClient = HttpClient.newHttpClient();
+        this.chatService = new AIService(); // 修改实例化
+        this.viewPanel = new AIAssistantViewPanel();
         
-        loadApiConfig();
-        initUI();
-    }
-    
-    /**
-     * 加载API配置
-     */
-    private void loadApiConfig() {
-        try {
-            Properties props = new Properties();
-            props.load(new FileInputStream(CONFIG_FILE));
-            apiKey = props.getProperty("api.key");
-            if (apiKey == null || apiKey.isEmpty()) {
-                displayMessage("系统", "警告：API密钥未配置，AI助手功能将无法正常工作。");
-            }
-        } catch (IOException e) {
-            displayMessage("系统", "错误：无法加载API配置文件 - " + e.getMessage());
-        }
-    }
-
-    /**
-     * 调用API处理用户消息（流式）
-     * 
-     * @param prompt 用户提示
-     * @param callback 接收流式响应的回调函数
-     */
-    private void callApiStream(String prompt, Consumer<String> callback) throws IOException, InterruptedException {
-        if (apiKey == null || apiKey.isEmpty()) {
-            throw new IOException("API密钥未配置");
-        }
-        
-        // 构建JSON请求体
-        Map<String, Object> requestMap = new HashMap<>();
-        requestMap.put("model", "Pro/deepseek-ai/DeepSeek-V3");
-        
-        Map<String, String> message = new HashMap<>();
-        message.put("role", "user");
-        message.put("content", prompt);
-        
-        requestMap.put("messages", new Object[]{message});
-        requestMap.put("temperature", 0.7);
-        requestMap.put("max_tokens", 1000);
-        requestMap.put("stream", true); // 启用流式输出
-        
-        // 将Map转换为JSON字符串
-        String requestBody = mapToJsonString(requestMap);
-        
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(API_ENDPOINT))
-            .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + apiKey)
-            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-            .build();
-        
-        // 使用InputStream处理流式响应
-        HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        
-        if (response.statusCode() != 200) {
-            throw new IOException("API请求失败，状态码：" + response.statusCode());
-        }
-        
-        // 使用BufferedReader读取流式响应
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("data: ")) {
-                    String data = line.substring(6); // 去掉 "data: " 前缀
-                    if (data.equals("[DONE]")) {
-                        break; // 流式响应结束
-                    }
-                    
-                    try {
-                        // 解析JSON数据
-                        int contentStart = data.indexOf("\"content\":\"");
-                        if (contentStart != -1) {
-                            contentStart += 11; // "content":"的长度
-                            int contentEnd = data.indexOf("\"", contentStart);
-                            if (contentEnd != -1) {
-                                String content = data.substring(contentStart, contentEnd);
-                                content = unescapeJsonString(content);
-                                if (!content.isEmpty()) {
-                                    callback.accept(content);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        // 忽略解析错误，继续处理下一行
-                    }
-                }
-            }
-        }
-    }
-    
-   /**
-    * 将Map转换为JSON字符串
-    */
-    private String mapToJsonString(Map<String, Object> map) {
-        StringBuilder json = new StringBuilder("{\n");
-        boolean first = true;
-
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (!first) {
-                json.append(",\n");
-            }
-            first = false;
-
-            json.append("  \"").append(entry.getKey()).append("\": ");
-            Object value = entry.getValue();
-
-            if (value instanceof String) {
-                json.append("\"").append(escapeJsonString((String) value)).append("\"");
-            } else if (value instanceof Number) {
-                json.append(value);
-            } else if (value instanceof Boolean) {
-                json.append(value);
-            } else if (value instanceof Object[]) {
-                json.append("[");
-                Object[] array = (Object[]) value;
-                for (int i = 0; i < array.length; i++) {
-                    if (i > 0) {
-                        json.append(", ");
-                    }
-                    // 类型检查以确保安全转换
-                    if (array[i] instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> subMap = (Map<String, Object>) array[i];
-                        json.append(mapToJsonString(subMap));
-                    } else if (array[i] instanceof String) {
-                        json.append("\"").append(escapeJsonString((String) array[i])).append("\"");
-                    } else {
-                        json.append(array[i]); // 其他类型直接追加
-                    }
-                }
-                json.append("]");
-            }
-        }
-
-        json.append("\n}");
-        return json.toString();
-    }
-    
-    /**
-     * 转义JSON字符串中的特殊字符
-     */
-    private String escapeJsonString(String input) {
-        return input.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
-    }
-    /**
-     * 解析API响应
-     */
-    
-    /**
-     * 解码JSON字符串中的转义字符
-     */
-    private String unescapeJsonString(String input) {
-        return input.replace("\\n", "\n")
-                    .replace("\\r", "\r")
-                    .replace("\\t", "\t")
-                    .replace("\\\"", "\"")
-                    .replace("\\\\", "\\");
-    }
-    
-    /**
-     * 初始化UI组件
-     */
-    private void initUI() {
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(10, 10, 10, 10));
+        add(viewPanel, BorderLayout.CENTER);
         
-        // 创建聊天显示区域
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        chatArea.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
-        
-        JScrollPane scrollPane = new JScrollPane(chatArea);
-        add(scrollPane, BorderLayout.CENTER);
-        
-        // 创建快捷功能按钮面板
-        JPanel quickActionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        quickActionPanel.setBorder(BorderFactory.createTitledBorder("快捷分析功能"));
-        
-        // 添加快捷功能按钮
-        JButton spendingAnalysisButton = new JButton("支出分析");
-        spendingAnalysisButton.addActionListener(e -> triggerAnalysis("请分析我的支出情况，找出主要支出类别和趋势。"));
-        quickActionPanel.add(spendingAnalysisButton);
-        
-        JButton budgetSuggestionButton = new JButton("预算建议");
-        budgetSuggestionButton.addActionListener(e -> triggerAnalysis("根据我的消费习惯，请给我提供合理的预算建议。"));
-        quickActionPanel.add(budgetSuggestionButton);
-        
-        JButton savingOpportunitiesButton = new JButton("节省机会");
-        savingOpportunitiesButton.addActionListener(e -> triggerAnalysis("请分析我的支出，找出可能的节省机会。"));
-        quickActionPanel.add(savingOpportunitiesButton);
-        
-        JButton seasonalPatternsButton = new JButton("季节性模式");
-        seasonalPatternsButton.addActionListener(e -> triggerAnalysis("请分析我的消费是否存在季节性模式。"));
-        quickActionPanel.add(seasonalPatternsButton);
-        
-        // 创建输入面板
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        inputPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
-        
-        // 创建输入框
-        inputField = new JTextField();
-        inputField.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
-        inputField.addActionListener(e -> sendMessage()); // 添加回车发送功能
-        inputPanel.add(inputField, BorderLayout.CENTER);
-        
-        // 创建发送按钮
-        sendButton = new JButton("发送");
-        sendButton.addActionListener(e -> sendMessage());
-        inputPanel.add(sendButton, BorderLayout.EAST);
-        
-        // 组合底部面板
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.add(quickActionPanel, BorderLayout.NORTH);
-        bottomPanel.add(inputPanel, BorderLayout.SOUTH);
-        
-        // 添加底部面板
-        add(bottomPanel, BorderLayout.SOUTH);
+        // 设置视图的回调，将视图的用户操作连接到控制器的方法
+        viewPanel.setSendMessageConsumer(this::handleUserMessage);
+        viewPanel.setTriggerAnalysisConsumer(this::handleTriggerAnalysis);
         
         // 显示欢迎消息
-        displayMessage("AI助手", "您好！我是您的AI财务助手。我可以帮您分析支出情况，提供预算建议，以及回答您关于财务管理的问题。\n\n您可以直接与我聊天，或使用上方的快捷分析功能按钮。");
+        viewPanel.displayMessage("AI助手", "您好！我是您的AI财务助手。我可以帮您分析支出情况，提供预算建议，以及回答您关于财务管理的问题。\n\n您可以直接与我聊天，或使用上方的快捷分析功能按钮。");
     }
-    
+
     /**
-     * 触发特定分析功能
+     * 处理从视图面板发送过来的用户消息
+     * @param message 用户输入的消息
      */
-    private void triggerAnalysis(String analysisPrompt) {
-        // 显示用户请求
-        displayMessage("您", analysisPrompt);
-        
-        // 处理分析请求
-        processAnalysisRequest(analysisPrompt);
+    private void handleUserMessage(String message) {
+        viewPanel.displayMessage("您", message); // 在视图上显示用户的消息
+        // viewPanel.clearInputField(); // 清空输入框的操作现在由视图自己处理或由控制器决定是否调用
+        processUserMessage(message); // 处理用户消息的逻辑
     }
-    
+
     /**
-     * 发送消息
+     * 处理从视图面板触发的快捷分析请求
+     * @param analysisPrompt 快捷分析的提示语
      */
-    private void sendMessage() {
-        String message = inputField.getText().trim();
-        if (!message.isEmpty()) {
-            // 显示用户消息
-            displayMessage("您", message);
-            
-            // 清空输入框
-            inputField.setText("");
-            
-            // 处理用户消息
-            processUserMessage(message);
-        }
+    private void handleTriggerAnalysis(String analysisPrompt) {
+        viewPanel.displayMessage("您", analysisPrompt); // 在视图上显示用户的请求
+        processAnalysisRequest(analysisPrompt); // 处理分析请求的逻辑
     }
     
     /**
@@ -330,51 +77,46 @@ public class AIAssistantPanel extends JPanel {
                 return true;
             }
         }
-        // 检查是否是简短的问候语（少于10个字符）
-        
-        return message.length() < 10;
+        // 检查是否是简短的问候语（少于10个字符且不包含特定关键词）
+        if (message.length() < 10) {
+            // 可以添加一些关键词排除，例如 "分析", "预算" 等，避免将简短的分析请求误判为问候
+            if (!message.contains("分析") && !message.contains("预算") && !message.contains("建议") && !message.contains("情况")) {
+                 return true;
+            }
+        }
+        return false;
     }
     
     /**
-     * 处理用户消息
+     * 处理用户消息的核心逻辑
      */
     private void processUserMessage(String message) {
-        // 判断是否是简单问候
         if (isSimpleGreeting(message)) {
-            // 如果是简单问候，直接回复，不进行数据分析
             String greeting = "您好！很高兴为您服务。您可以直接询问我关于您的财务情况，或使用上方的快捷分析功能按钮。";
-            displayMessage("AI助手", greeting);
+            viewPanel.displayMessage("AI助手", greeting);
             return;
         }
-        
-        // 如果不是简单问候，进行数据分析
+
         processAnalysisRequest(message);
     }
     
     /**
-     * 处理分析请求
+     * 处理分析请求的核心逻辑
      */
     private void processAnalysisRequest(String message) {
         try {
-            // 获取所有交易记录
             List<Transaction> transactions = transactionManager.getAllTransactions();
             
             if (transactions.isEmpty()) {
-                displayMessage("AI助手", "目前还没有任何交易记录。请先添加一些交易记录，我才能为您提供分析和建议。");
+                viewPanel.displayMessage("AI助手", "目前还没有任何交易记录。请先添加一些交易记录，我才能为您提供分析和建议。");
                 return;
             }
             
-            // 显示处理中消息
-            displayMessage("系统", "正在分析您的问题，请稍候...");
+            viewPanel.displayMessage("系统", "正在分析您的问题，请稍候...");
+            viewPanel.setInputEnabled(false); // 禁用输入
             
-            // 禁用发送按钮，防止重复发送
-            sendButton.setEnabled(false);
-            inputField.setEnabled(false);
-            
-            // 将交易记录转换为CSV格式，使用StringBuilder提高性能
             StringBuilder csvData = new StringBuilder(1024);
             csvData.append("ID,金额,日期,类别,描述,类型,支付方式\n");
-            
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             for (Transaction t : transactions) {
                 csvData.append(t.getId()).append(',');
@@ -386,10 +128,8 @@ public class AIAssistantPanel extends JPanel {
                 csvData.append(escapeCSV(t.getPaymentMethod())).append('\n');
             }
             
-            // 使用分析器提供的统计数据增强提示
             String statistics = analyzer.getBasicStatistics(transactions);
             
-            // 构建更详细的分析提示
             final String analysisPrompt = String.format(
                 "你是一个专业的财务分析助手。请基于以下交易数据和统计信息，以专业且友好的口吻回答用户问题：\n\n" +
                 "交易数据：\n%s\n\n" +
@@ -401,59 +141,44 @@ public class AIAssistantPanel extends JPanel {
                 message
             );
             
-            // 创建AI助手回复的占位符
-            currentAIResponseId = "ai_" + System.currentTimeMillis();
-            displayMessage("AI助手", ""); // 创建空消息，稍后会通过流式输出填充内容
+            currentAIResponseId = "ai_" + System.currentTimeMillis(); // 标记AI回复开始
+            viewPanel.displayMessage("AI助手", ""); // 为流式输出创建占位
             
-            // 使用SwingWorker在后台线程中调用流式API
             new SwingWorker<Void, String>() {
                 @Override
                 protected Void doInBackground() throws Exception {
-                    try {
-                        // 在后台线程中调用流式API
-                        callApiStream(analysisPrompt, chunk -> {
-                            // 发布进度，将接收到的文本块传递给process方法
-                            publish(chunk);
-                        });
-                    } catch (IOException | InterruptedException e) {
-                        throw e;
-                    }
+                    chatService.callApiStream(analysisPrompt, chunk -> publish(chunk));
                     return null;
                 }
                 
                 @Override
                 protected void process(List<String> chunks) {
-                    // 在EDT线程中处理接收到的文本块
                     for (String chunk : chunks) {
-                        appendToMessage("AI助手", chunk);
+                        viewPanel.appendToMessage(chunk); // 追加到视图
                     }
                 }
                 
                 @Override
                 protected void done() {
                     try {
-                        get(); // 检查是否有异常
-                        currentAIResponseId = null; // 重置当前响应ID
+                        get(); // 检查后台任务是否有异常
                     } catch (InterruptedException | ExecutionException e) {
                         Throwable cause = e.getCause();
-                        if (cause instanceof IOException && cause.getMessage().contains("API密钥未配置")) {
-                            displayMessage("AI助手", "抱歉，AI助手功能暂时无法使用，因为API密钥未配置。请联系管理员配置API密钥。");
+                        if (cause instanceof IOException && cause.getMessage() != null && cause.getMessage().contains("API密钥未配置")) {
+                            viewPanel.displayMessage("AI助手", "抱歉，AI助手功能暂时无法使用，因为API密钥未配置。请联系管理员配置API密钥。");
                         } else {
-                            displayMessage("AI助手", "抱歉，调用AI服务时出现错误：" + (cause != null ? cause.getMessage() : e.getMessage()));
+                            viewPanel.displayMessage("AI助手", "抱歉，调用AI服务时出现错误：" + (cause != null ? cause.getMessage() : e.getMessage()));
                         }
                     } finally {
-                        // 重新启用发送按钮和输入框
-                        sendButton.setEnabled(true);
-                        inputField.setEnabled(true);
+                        currentAIResponseId = null; // 重置
+                        viewPanel.setInputEnabled(true); // 重新启用输入
                     }
                 }
             }.execute();
             
         } catch (Exception e) {
-            displayMessage("AI助手", "抱歉，处理交易数据时出现错误：" + e.getMessage());
-            // 确保发送按钮和输入框被重新启用
-            sendButton.setEnabled(true);
-            inputField.setEnabled(true);
+            viewPanel.displayMessage("AI助手", "抱歉，处理您的请求时出现错误：" + e.getMessage());
+            viewPanel.setInputEnabled(true); // 确保输入被重新启用
         }
     }
     
@@ -462,44 +187,9 @@ public class AIAssistantPanel extends JPanel {
      */
     private String escapeCSV(String field) {
         if (field == null) return "";
-        // 如果字段包含逗号、换行符或双引号，需要用双引号包围并对内部的双引号进行转义
         if (field.contains(",") || field.contains("\n") || field.contains("\"")) {
             return "\"" + field.replace("\"", "\"\"") + "\"";
         }
         return field;
-    }
-    
-    /**
-     * 显示消息
-     */
-    private void displayMessage(String sender, String message) {
-        String formattedMessage = String.format("[%s]: %s\n\n", sender, message);
-        
-        // 如果是AI助手的消息，保存当前位置以便后续追加
-        if (sender.equals("AI助手")) {
-            currentAIResponseId = "ai_" + System.currentTimeMillis();
-        } else {
-            currentAIResponseId = null;
-        }
-        
-        chatArea.append(formattedMessage);
-        // 滚动到最新消息
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
-    }
-    
-    /**
-     * 追加内容到最后一条AI助手消息
-     */
-    private void appendToMessage(String sender, String chunk) {
-        if (!sender.equals("AI助手") || currentAIResponseId == null) {
-            displayMessage(sender, chunk);
-            return;
-        }
-        
-        // 追加内容到聊天区域
-        chatArea.append(chunk);
-        
-        // 滚动到最新消息
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 }
