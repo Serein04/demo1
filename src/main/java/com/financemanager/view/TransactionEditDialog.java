@@ -36,6 +36,10 @@ public class TransactionEditDialog extends JDialog {
     private JTextField descriptionField;
     private JComboBox<String> typeComboBox;
     private JComboBox<String> paymentMethodComboBox;
+
+    private JLabel aiSuggestionValueLabel; // Added for AI suggestion
+    private JButton adoptAiButton;         // Added button to adopt AI suggestion
+    private String currentAiSuggestion;    // To store the current AI suggestion
     
     private boolean confirmed = false;
     
@@ -140,12 +144,39 @@ public class TransactionEditDialog extends JDialog {
         
         gbc.gridx = 1;
         categoryComboBox = new JComboBox<>();
-        updateCategoryComboBox(); // 初始化类别选项
+        // updateCategoryComboBox() will be called after typeComboBox is set up
         formPanel.add(categoryComboBox, gbc);
-        
-        // 描述输入
+
+        // AI建议类别 Label
         gbc.gridx = 0;
         gbc.gridy = 4;
+        formPanel.add(new JLabel("AI建议类别:"), gbc);
+
+        // AI建议类别 Value Label
+        gbc.gridx = 1;
+        aiSuggestionValueLabel = new JLabel("(加载中...)");
+        formPanel.add(aiSuggestionValueLabel, gbc);
+
+        // 采纳AI建议 Button
+        gbc.gridx = 1; // Place it in the second column
+        gbc.gridy = 5; // New row for the button
+        gbc.anchor = GridBagConstraints.LINE_START; // Align to the left of the cell
+        adoptAiButton = new JButton("采纳AI建议");
+        adoptAiButton.setEnabled(false); // Initially disabled
+        adoptAiButton.addActionListener(e -> {
+            if (currentAiSuggestion != null && !currentAiSuggestion.isEmpty()) {
+                // Ensure the category list matches the current transaction type
+                // This check is implicitly handled if updateCategoryComboBox was called correctly
+                // after typeComboBox might have changed.
+                categoryComboBox.setSelectedItem(currentAiSuggestion);
+            }
+        });
+        formPanel.add(adoptAiButton, gbc);
+        gbc.anchor = GridBagConstraints.CENTER; // Reset anchor for other components
+
+        // 描述输入
+        gbc.gridx = 0;
+        gbc.gridy = 6; // Adjusted gridy
         formPanel.add(new JLabel("描述:"), gbc);
         
         gbc.gridx = 1;
@@ -154,7 +185,7 @@ public class TransactionEditDialog extends JDialog {
         
         // 支付方式选择
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 7; // Adjusted gridy
         formPanel.add(new JLabel("支付方式:"), gbc);
         
         gbc.gridx = 1;
@@ -260,6 +291,8 @@ public class TransactionEditDialog extends JDialog {
         
         // 设置类型
         typeComboBox.setSelectedIndex(transaction.isExpense() ? 0 : 1);
+        // updateCategoryComboBox is called by typeComboBox's action listener,
+        // which will populate categories and select the current one.
         
         // 设置描述
         descriptionField.setText(transaction.getDescription());
@@ -273,6 +306,84 @@ public class TransactionEditDialog extends JDialog {
         }
         
         // 类别在updateCategoryComboBox方法中设置
+
+        // 获取并显示AI建议类别
+        if (classifier != null && this.transaction != null && this.transaction.getDescription() != null && !this.transaction.getDescription().trim().isEmpty()) {
+            try {
+                // Ensure the transaction object passed to classifier reflects the current type in the dialog
+                // For simplicity, we assume the original transaction type is what AI should classify on,
+                // or that the type in dialog hasn't changed yet from original.
+                // A more robust solution might re-classify if type is changed in dialog.
+                // Corrected constructor call:
+                Transaction tempTransactionForAISuggestion = new Transaction(
+                    this.transaction.getId(),           // String id
+                    this.transaction.getAmount(),       // double amount (can use original or from dialog field)
+                    this.transaction.getDate(),         // LocalDate date (can use original or from dialog fields)
+                    this.transaction.getCategory(),     // String category (original category is fine for temp object)
+                    this.transaction.getDescription(),  // String description (use current description from dialog if it's more up-to-date, or original)
+                    typeComboBox.getSelectedIndex() == 0, // boolean isExpense (use current type from dialog)
+                    this.transaction.getPaymentMethod() // String paymentMethod (can use original or from dialog field)
+                );
+                
+                // It's better to use the current values from the dialog fields for AI suggestion,
+                // as the user might have changed them before wanting an AI suggestion.
+                // However, the original transaction's ID and potentially its original category are fine.
+                // Let's refine to use dialog values where appropriate for the AI to classify on current input:
+                try {
+                    double currentAmount = Double.parseDouble(amountField.getText());
+                    LocalDate currentDate = LocalDate.of(
+                        (Integer) yearComboBox.getSelectedItem(),
+                        (Integer) monthComboBox.getSelectedItem(),
+                        (Integer) dayComboBox.getSelectedItem()
+                    );
+                    String currentDescription = descriptionField.getText();
+                    String currentPaymentMethod = (String) paymentMethodComboBox.getSelectedItem();
+
+                    tempTransactionForAISuggestion = new Transaction(
+                        this.transaction.getId(),           // String id
+                        currentAmount,                      // double amount from dialog
+                        currentDate,                        // LocalDate date from dialog
+                        this.transaction.getCategory(),     // String category (original category is fine for temp object)
+                        currentDescription,                 // String description from dialog
+                        typeComboBox.getSelectedIndex() == 0, // boolean isExpense (use current type from dialog)
+                        currentPaymentMethod                // String paymentMethod from dialog
+                    );
+
+                } catch (NumberFormatException nfe) {
+                    // If amount is not valid, AI suggestion might not be relevant or possible
+                    aiSuggestionValueLabel.setText("(金额格式无效)");
+                    adoptAiButton.setEnabled(false);
+                    currentAiSuggestion = null; // Ensure no stale suggestion
+                    throw nfe; // Re-throw to be caught by the outer catch block or handle specifically
+                }
+
+
+                currentAiSuggestion = classifier.classifyTransaction(tempTransactionForAISuggestion);
+                aiSuggestionValueLabel.setText(currentAiSuggestion);
+                // Enable button only if suggestion is different from current and valid
+                if (currentAiSuggestion != null && !currentAiSuggestion.equals(categoryComboBox.getSelectedItem())) {
+                     // Check if currentAiSuggestion is in the categoryComboBox items
+                    boolean suggestionIsValid = false;
+                    for (int i = 0; i < categoryComboBox.getItemCount(); i++) {
+                        if (currentAiSuggestion.equals(categoryComboBox.getItemAt(i))) {
+                            suggestionIsValid = true;
+                            break;
+                        }
+                    }
+                    adoptAiButton.setEnabled(suggestionIsValid);
+                } else {
+                    adoptAiButton.setEnabled(false);
+                }
+            } catch (Exception e) {
+                System.err.println("编辑对话框中获取AI分类建议时出错: " + e.getMessage());
+                currentAiSuggestion = null;
+                aiSuggestionValueLabel.setText("(AI分类出错)");
+                adoptAiButton.setEnabled(false);
+            }
+        } else {
+            aiSuggestionValueLabel.setText("(无描述或AI服务不可用)");
+            adoptAiButton.setEnabled(false);
+        }
     }
     
     /**

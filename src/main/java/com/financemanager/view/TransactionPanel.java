@@ -12,10 +12,10 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.List; // Added for Set
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
+import javax.swing.JButton; // Added for Set
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -29,7 +29,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 
 import com.financemanager.ai.TransactionClassifier;
-import com.financemanager.model.Transaction;
+import com.financemanager.model.Transaction; // Added for custom renderer
 import com.financemanager.model.TransactionManager;
 
 /**
@@ -41,6 +41,7 @@ public class TransactionPanel extends JPanel {
     private final TransactionManager transactionManager;
     private final TransactionClassifier classifier;
     private final MainFrame mainFrame; // 引用主窗口以便调用返回等方法
+    // private Set<String> transactionsWithAiSuggestions; // Removed
 
     // UI组件
     private JTable transactionTable;
@@ -70,6 +71,7 @@ public class TransactionPanel extends JPanel {
         this.transactionManager = transactionManager;
         this.classifier = classifier;
         this.mainFrame = mainFrame; // 保存主窗口引用
+        // this.transactionsWithAiSuggestions = new HashSet<>(); // Removed
 
         initComponents();
         loadTransactions(); // 初始化时加载数据
@@ -100,6 +102,8 @@ public class TransactionPanel extends JPanel {
 
         // 创建表格
         transactionTable = new JTable(transactionTableModel);
+        // Apply custom renderer - REMOVED
+        // transactionTable.setDefaultRenderer(Object.class, new AiSuggestionCellRenderer());
         JScrollPane scrollPane = new JScrollPane(transactionTable);
         add(scrollPane, BorderLayout.CENTER);
 
@@ -322,14 +326,18 @@ public class TransactionPanel extends JPanel {
      * 加载交易记录到表格
      */
     public void loadTransactions() { // 改为 public 以便 MainFrame 调用刷新
-        // 清空表格
+        // 清空表格和AI建议Set
         transactionTableModel.setRowCount(0);
+        // transactionsWithAiSuggestions.clear(); // Removed
 
         // 获取所有交易记录
         List<Transaction> transactions = transactionManager.getAllTransactions();
 
         // 添加到表格
         for (Transaction t : transactions) {
+            if (t == null || t.getId() == null) continue; // Skip null transactions or those without ID
+
+
             Object[] rowData = {
                     t.getId(),
                     String.format("%.2f", t.getAmount()),
@@ -341,9 +349,11 @@ public class TransactionPanel extends JPanel {
             };
             transactionTableModel.addRow(rowData);
         }
+        // transactionTable.repaint(); // Repaint table to apply new renderer status - Removed as renderer is removed
         // 通知主窗口更新可能依赖交易数据的其他面板（如图表）
         mainFrame.refreshBudgetPanel();
     }
+
 
     /**
      * 添加交易记录

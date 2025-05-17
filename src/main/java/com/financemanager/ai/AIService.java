@@ -15,14 +15,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
 
-public class AIService { // 类名已修改
+public class AIService { 
 
     private static final String CONFIG_FILE = "config.properties";
     private static final String API_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
     private String apiKey;
     private final HttpClient httpClient;
 
-    public AIService() { // 构造函数名已修改
+    public AIService() { 
         this.httpClient = HttpClient.newHttpClient();
         loadApiConfig();
     }
@@ -104,6 +104,87 @@ public class AIService { // 类名已修改
                     }
                 }
             }
+        }
+    }
+
+    public String getLLMChatCompletion(String prompt) throws IOException, InterruptedException {
+        if (apiKey == null || apiKey.isEmpty()) {
+            throw new IOException("API密钥未配置");
+        }
+
+        Map<String, Object> requestMap = new HashMap<>();
+        requestMap.put("model", "deepseek/deepseek-chat-v3-0324");
+
+        Map<String, String> message = new HashMap<>();
+        message.put("role", "user");
+        message.put("content", prompt);
+
+        requestMap.put("messages", new Object[]{message});
+        requestMap.put("temperature", 0.7); // You might want to adjust this for classification
+        requestMap.put("max_tokens", 150); // Classification usually needs fewer tokens
+        requestMap.put("stream", false); // Set stream to false for a single response
+
+        String requestBody = mapToJsonString(requestMap);
+
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(API_ENDPOINT))
+            .header("Content-Type", "application/json")
+            .header("Authorization", "Bearer " + apiKey)
+            .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+            .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        if (response.statusCode() != 200) {
+            throw new IOException("API请求失败，状态码：" + response.statusCode() + ", 响应体: " + response.body());
+        }
+
+        // Parse the JSON response to extract the content
+        // This is a simplified parser. For robust parsing, consider a JSON library like Jackson or Gson.
+        String responseBody = response.body();
+        try {
+            // Example of a simple manual parse, assuming a structure like:
+            // {"choices":[{"message":{"content":"CategoryName"}}]}
+            // This will need to be adjusted based on the actual API response structure for non-streaming.
+            // For OpenRouter, the non-streaming response for chat completions is typically:
+            // {
+            //   "id": "...",
+            //   "object": "chat.completion",
+            //   "created": ...,
+            //   "model": "...",
+            //   "choices": [
+            //     {
+            //       "index": 0,
+            //       "message": {
+            //         "role": "assistant",
+            //         "content": "The actual response content"
+            //       },
+            //       "finish_reason": "stop"
+            //     }
+            //   ],
+            //   "usage": { ... }
+            // }
+
+            int choicesStart = responseBody.indexOf("\"choices\":[");
+            if (choicesStart != -1) {
+                int messageStart = responseBody.indexOf("\"message\":{", choicesStart);
+                if (messageStart != -1) {
+                    int contentStart = responseBody.indexOf("\"content\":\"", messageStart);
+                    if (contentStart != -1) {
+                        contentStart += "\"content\":\"".length();
+                        int contentEnd = responseBody.indexOf("\"", contentStart);
+                        if (contentEnd != -1) {
+                            return unescapeJsonString(responseBody.substring(contentStart, contentEnd));
+                        }
+                    }
+                }
+            }
+            // If parsing fails, return the raw body or throw an error
+            // For simplicity here, we'll throw an error if content not found.
+            throw new IOException("无法从API响应中解析内容: " + responseBody);
+        } catch (Exception e) {
+            System.err.println("解析API响应时出错: " + responseBody + " - " + e.getMessage());
+            throw new IOException("解析API响应时出错: " + e.getMessage(), e);
         }
     }
 

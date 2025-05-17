@@ -2,6 +2,7 @@ package com.financemanager;
 
 import javax.swing.UnsupportedLookAndFeelException;
 
+import com.financemanager.ai.AIService; // Added import
 import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
@@ -20,7 +21,8 @@ public class Main {
         BudgetManager budgetManager = new BudgetManager();
         
         // 初始化AI组件
-        TransactionClassifier classifier = new TransactionClassifier();
+        AIService aiService = new AIService(); // Create AIService instance
+        TransactionClassifier classifier = new TransactionClassifier(aiService); // Pass AIService to TransactionClassifier
         ExpenseAnalyzer analyzer = new ExpenseAnalyzer(classifier);
         
         // 启动GUI界面

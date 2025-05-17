@@ -61,11 +61,19 @@ public class TransactionClassifier {
     // 用户自定义的类别关键词映射
     private final Map<String, List<String>> categoryKeywords;
     private static final String KEYWORDS_FILE = "data/category_keywords.csv";
+    private AIService aiService; // Added AIService
     
-    public TransactionClassifier() {
+    // Constructor updated to accept AIService
+    public TransactionClassifier(AIService aiService) {
+        this.aiService = aiService;
         this.categoryKeywords = new HashMap<>();
         loadDefaultKeywords();
         loadUserKeywords();
+    }
+
+    // Overloaded constructor for backward compatibility or keyword-only mode
+    public TransactionClassifier() {
+        this(null); // Calls the main constructor with null AIService
     }
     
     /**
@@ -202,10 +210,80 @@ public class TransactionClassifier {
     }
     
     /**
-     * 基于关键词匹配对交易进行分类
-     * 这是一个简单的基于规则的分类方法，实际应用中可以替换为更复杂的AI算法
+     * Main method to classify a transaction.
+     * It first tries to use LLM if AIService is available and configured.
+     * If LLM classification fails or is not available, it falls back to keyword-based classification.
      */
     public String classifyTransaction(Transaction transaction) {
+        if (transaction == null) {
+            throw new IllegalArgumentException("交易记录不能为空");
+        }
+        String description = transaction.getDescription();
+        if (description == null || description.trim().isEmpty()) {
+            // For LLM, a description is crucial. If keyword-based can handle it, it will.
+            // Otherwise, let keyword-based throw the specific error or return default.
+             return classifyTransactionKeywordBased(transaction);
+        }
+
+        if (this.aiService != null) {
+            try {
+                String prompt = buildPromptForLLM(transaction);
+                String llmResponse = aiService.getLLMChatCompletion(prompt);
+                String chosenCategory = llmResponse.trim();
+
+                List<String> validCategories = transaction.isExpense() ? getExpenseCategories() : getIncomeCategories();
+                if (validCategories.contains(chosenCategory)) {
+                    System.out.println("LLM classified transaction '" + transaction.getDescription() + "' as: " + chosenCategory);
+                    return chosenCategory;
+                } else {
+                    System.err.println("LLM返回无效类别: " + chosenCategory + " for transaction '" + transaction.getDescription() + "'. 回退到关键词分类。");
+                }
+            } catch (IOException | InterruptedException e) {
+                System.err.println("调用LLM API进行分类时出错: " + e.getMessage() + " for transaction '" + transaction.getDescription() + "'. 回退到关键词分类。");
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt(); // Restore interruption status
+                }
+            } catch (Exception e) { // Catch any other unexpected errors from AI service
+                 System.err.println("LLM分类时发生未知错误: " + e.getMessage() + " for transaction '" + transaction.getDescription() + "'. 回退到关键词分类。");
+            }
+        } else {
+            System.out.println("AIService未配置，使用关键词分类 for transaction '" + transaction.getDescription() + "'.");
+        }
+        
+        // Fallback to keyword-based classification
+        return classifyTransactionKeywordBased(transaction);
+    }
+
+    private String buildPromptForLLM(Transaction transaction) {
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("您是一个专业的财务助手。您的任务是根据交易描述和类型（支出或收入），将交易分类到预定义的类别之一。\n\n");
+        promptBuilder.append("交易描述: \"").append(transaction.getDescription().replace("\"", "'")).append("\"\n"); // Escape quotes in description
+        String transactionType = transaction.isExpense() ? "支出" : "收入";
+        promptBuilder.append("交易类型: ").append(transactionType).append("\n\n");
+        promptBuilder.append("请从以下类别列表中选择最合适的类别。\n");
+        promptBuilder.append("请仅返回类别名称，不要添加任何其他文字或解释。\n\n");
+        promptBuilder.append("可用的").append(transactionType).append("类别及其描述:\n{\n");
+    
+        List<String> categories = transaction.isExpense() ? getExpenseCategories() : getIncomeCategories();
+        for (int i = 0; i < categories.size(); i++) {
+            String category = categories.get(i);
+            String categoryDesc = getCategoryDescription(category).replace("\"", "'"); // Escape quotes in description
+            promptBuilder.append("  \"").append(category).append("\": \"").append(categoryDesc).append("\"");
+            if (i < categories.size() - 1) {
+                promptBuilder.append(",\n");
+            } else {
+                promptBuilder.append("\n");
+            }
+        }
+        promptBuilder.append("}\n\n选择的类别:");
+        return promptBuilder.toString();
+    }
+
+    /**
+     * 基于关键词匹配对交易进行分类
+     * 这是一个简单的基于规则的分类方法
+     */
+    public String classifyTransactionKeywordBased(Transaction transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("交易记录不能为空");
         }
@@ -243,12 +321,16 @@ public class TransactionClassifier {
     
     /**
      * 批量分类交易
+     * This method will now use the primary classifyTransaction method, which may use LLM or keyword.
      */
     public Map<String, String> batchClassifyTransactions(List<Transaction> transactions) {
         Map<String, String> results = new HashMap<>();
+        if (transactions == null) return results; // Handle null list
         for (Transaction transaction : transactions) {
-            String category = classifyTransaction(transaction);
-            results.put(transaction.getId(), category);
+            if (transaction != null && transaction.getId() != null) { // Ensure transaction and ID are not null
+                 String category = classifyTransaction(transaction); // Uses the new primary classification method
+                 results.put(transaction.getId(), category);
+            }
         }
         return results;
     }
