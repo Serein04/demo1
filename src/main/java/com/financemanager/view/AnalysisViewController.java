@@ -195,13 +195,18 @@ public class AnalysisViewController {
     private void handleBackButtonAction(ActionEvent event) {
         try {
             Stage stage = (Stage) backButton.getScene().getWindow();
+            // Attempt to detach old root explicitly
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane());
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
             // Pass all services needed by StartScreenController and its subsequent views
             ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
-            stage.setScene(new Scene(startScreenRoot));
-            stage.setTitle("个人财务管理器 - JavaFX");
+            stage.setScene(new Scene(startScreenRoot, 1200, 800)); // Updated size
+            stage.setTitle("个人财务管理器");
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("错误", "无法加载主菜单界面: " + e.getMessage());

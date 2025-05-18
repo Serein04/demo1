@@ -3,21 +3,18 @@ package com.financemanager;
 import java.io.IOException;
 import java.net.URL;
 
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-
 import com.financemanager.ai.AIService;
-import com.financemanager.ai.ExpenseAnalyzer; // Import ExpenseAnalyzer
+import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
 import com.financemanager.model.TransactionManager;
 import com.financemanager.view.StartScreenController;
 
-import java.io.IOException;
-import java.net.URL;
+import javafx.application.Application; // Import ExpenseAnalyzer
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 public class MainJavaFX extends Application {
 
@@ -54,8 +51,8 @@ public class MainJavaFX extends Application {
             StartScreenController controller = loader.getController();
             controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); // Pass ExpenseAnalyzer
 
-            Scene scene = new Scene(root, 700, 500);
-            primaryStage.setTitle("个人财务管理器 - JavaFX");
+            Scene scene = new Scene(root, 1200, 800); // Updated size
+            primaryStage.setTitle("个人财务管理器");
             primaryStage.setScene(scene);
             primaryStage.show();
         } catch (IOException e) {

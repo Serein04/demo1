@@ -19,11 +19,11 @@ public class MainFrame extends JFrame {
     private final BudgetManager budgetManager;
     private final TransactionClassifier classifier;
     private final ExpenseAnalyzer analyzer;
-    private StartFrame startFrame; // 添加StartFrame引用
+    // private StartFrame startFrame; // Removed, StartFrame is deleted
 
     // UI组件
     private JTabbedPane tabbedPane;
-    private BudgetPanel budgetPanel; // 保留对 BudgetPanel 的引用以便刷新
+    // private BudgetPanel budgetPanel; // Removed, BudgetPanel is deleted
 
     // 移除 TransactionPanel, BudgetPanel, AnalysisPanel 的 UI 组件声明
 
@@ -44,36 +44,37 @@ public class MainFrame extends JFrame {
     /**
      * 设置StartFrame引用
      */
-    public void setStartFrame(StartFrame startFrame) {
-        this.startFrame = startFrame;
-    }
+    // public void setStartFrame(StartFrame startFrame) { // Removed, StartFrame is deleted
+    // this.startFrame = startFrame;
+    // }
 
     /**
      * 初始化UI组件
      */
     private void initUI() {
-        setTitle("个人财务管理器");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setTitle("个人财务管理器 (Legacy Swing Frame)"); // Indicate it's legacy
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Dispose instead of exit if it's just for remaining panels
         setSize(900, 600);
         setLocationRelativeTo(null);
 
         // 创建选项卡面板
         tabbedPane = new JTabbedPane();
 
-        // 创建并添加交易记录选项卡
-        TransactionPanel transactionPanel = new TransactionPanel(transactionManager, classifier, this);
-        tabbedPane.addTab("交易记录", transactionPanel);
+        // // 创建并添加交易记录选项卡 - Removed, TransactionPanel is deleted
+        // TransactionPanel transactionPanel = new TransactionPanel(transactionManager, classifier, this);
+        // tabbedPane.addTab("交易记录", transactionPanel);
 
-        // 创建并添加预算管理选项卡
-        budgetPanel = new BudgetPanel(transactionManager, budgetManager, classifier, this); // 保存引用
-        tabbedPane.addTab("预算管理", budgetPanel);
+        // // 创建并添加预算管理选项卡 - Removed, BudgetPanel is deleted
+        // budgetPanel = new BudgetPanel(transactionManager, budgetManager, classifier, this); 
+        // tabbedPane.addTab("预算管理", budgetPanel);
 
-        // 创建并添加分析报告选项卡
-        AnalysisPanel analysisPanel = new AnalysisPanel(transactionManager, budgetManager, analyzer, this);
-        tabbedPane.addTab("分析报告", analysisPanel);
+        // // 创建并添加分析报告选项卡 - Removed, AnalysisPanel is deleted
+        // AnalysisPanel analysisPanel = new AnalysisPanel(transactionManager, budgetManager, analyzer, this);
+        // tabbedPane.addTab("分析报告", analysisPanel);
 
         // 创建并添加AI助手选项卡 (AIAssistantPanel 本身已是独立类)
-        AIAssistantPanel aiAssistantPanel = new AIAssistantPanel(transactionManager, analyzer, this); // 添加 this 作为参数
+        // This is the only remaining panel for now.
+        AIAssistantPanel aiAssistantPanel = new AIAssistantPanel(transactionManager, analyzer, this); 
         tabbedPane.addTab("AI助手", aiAssistantPanel);
 
         // 设置内容面板
@@ -83,27 +84,25 @@ public class MainFrame extends JFrame {
     /**
      * 返回主界面 (改为 public)
      */
-    public void returnToMainScreen() {
-        if (startFrame != null) {
-            this.dispose(); // 关闭当前窗口
-            startFrame.setVisible(true); // 显示StartFrame
-        } else {
-            // 如果没有StartFrame引用，可以考虑退出程序或仅关闭窗口
-             System.out.println("StartFrame is null, disposing MainFrame."); // 添加日志或调试信息
-            this.dispose();
-            // System.exit(0); // 或者直接退出
-        }
-    }
+    // public void returnToMainScreen() { // Removed, StartFrame is deleted and navigation is JavaFX based
+    // if (startFrame != null) {
+    // this.dispose(); // 关闭当前窗口
+    // startFrame.setVisible(true); // 显示StartFrame
+    // } else {
+    // System.out.println("StartFrame is null, disposing MainFrame."); 
+    // this.dispose();
+    // }
+    // }
 
     /**
      * 刷新预算面板的数据（包括表格和图表）
      * 供 TransactionPanel 调用
      */
-    public void refreshBudgetPanel() {
-        if (budgetPanel != null) {
-            budgetPanel.refreshData(); // 调用 BudgetPanel 的刷新方法
-        }
-    }
+    // public void refreshBudgetPanel() { // Removed, BudgetPanel is deleted
+    // if (budgetPanel != null) {
+    // budgetPanel.refreshData(); 
+    // }
+    // }
 
     // 移除 createTransactionPanel(), createBudgetPanel(), createAnalysisPanel() 方法
     // 移除 loadTransactions(), loadBudgetData(), updateBudgetTable(), updateBudgetChart(), createCategoryPieChartDataset() 方法

@@ -43,8 +43,10 @@ public class AIAssistantPanel extends JPanel {
 
         // 添加返回主界面按钮
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton backButton = new JButton("返回主界面");
-        backButton.addActionListener(e -> this.mainFrame.returnToMainScreen());
+        JButton backButton = new JButton("返回主界面 (Swing - Inactive)"); // Indicate button is inactive
+        // backButton.addActionListener(e -> this.mainFrame.returnToMainScreen()); // Method removed from MainFrame
+        // Temporarily disable or remove action until AIAssistantPanel is refactored to JavaFX
+        // For now, the button will do nothing.
         topPanel.add(backButton);
         add(topPanel, BorderLayout.NORTH);
         

@@ -60,6 +60,12 @@ public class StartScreenController {
             return;
         }
         try {
+            Stage stage = (Stage) transactionButton.getScene().getWindow();
+            // Attempt to detach old root explicitly from the current scene of the stage
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane()); // Set a dummy, new, empty root
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/TransactionView.fxml"));
             Parent transactionViewRoot = loader.load();
 
@@ -67,9 +73,8 @@ public class StartScreenController {
             // Pass all four services to TransactionViewController
             controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
 
-            Stage stage = (Stage) transactionButton.getScene().getWindow();
-            Scene scene = new Scene(transactionViewRoot);
-            stage.setScene(scene);
+            Scene newScene = new Scene(transactionViewRoot, 1200, 800); // Updated size
+            stage.setScene(newScene);
             stage.setTitle("交易记录管理 - JavaFX");
 
         } catch (IOException e) {
@@ -88,6 +93,11 @@ public class StartScreenController {
             return;
         }
         try {
+            Stage stage = (Stage) budgetButton.getScene().getWindow();
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane()); 
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/BudgetView.fxml"));
             Parent budgetViewRoot = loader.load();
 
@@ -95,9 +105,8 @@ public class StartScreenController {
             // Pass ExpenseAnalyzer as well to BudgetViewController
             controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer);
 
-            Stage stage = (Stage) budgetButton.getScene().getWindow();
-            Scene scene = new Scene(budgetViewRoot);
-            stage.setScene(scene);
+            Scene newScene = new Scene(budgetViewRoot, 1200, 800); // Updated size
+            stage.setScene(newScene);
             stage.setTitle("预算管理 - JavaFX");
 
         } catch (IOException e) {
@@ -115,15 +124,19 @@ public class StartScreenController {
             return;
         }
         try {
+            Stage stage = (Stage) analysisButton.getScene().getWindow();
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane());
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/AnalysisView.fxml"));
             Parent analysisViewRoot = loader.load();
 
             AnalysisViewController controller = loader.getController();
             controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer);
 
-            Stage stage = (Stage) analysisButton.getScene().getWindow();
-            Scene scene = new Scene(analysisViewRoot);
-            stage.setScene(scene);
+            Scene newScene = new Scene(analysisViewRoot, 1200, 800); // Updated size
+            stage.setScene(newScene);
             stage.setTitle("分析报告 - JavaFX");
 
         } catch (IOException e) {

@@ -124,14 +124,14 @@ public class TransactionViewController {
         
         // Set default type to expense
         expenseToggleButton.setSelected(true);
-        updateCategoryComboBox(true);
+        // updateCategoryComboBox(true); // Moved to setServices after classifier is injected
         paymentMethodLabel.setVisible(true);
         paymentMethodComboBox.setVisible(true);
         
         datePicker.setValue(LocalDate.now());
 
         // loadTransactions(); // Call this once managers are properly initialized
-        System.out.println("TransactionViewController initialized. TransactionManager and Classifier need proper injection.");
+        System.out.println("TransactionViewController initialized. Services will be injected via setServices.");
     }
     
     // This method should be called from where this view is created, passing the necessary services.
@@ -140,9 +140,11 @@ public class TransactionViewController {
         this.budgetManager = bm; 
         this.transactionClassifier = tc;
         this.expenseAnalyzer = ea; // Store ExpenseAnalyzer
-        // Now that services are set, load initial data
+        
+        // Now that services are set, load initial data and update UI elements dependent on services
         loadTransactions();
-        updateCategoryComboBox(expenseToggleButton.isSelected()); // Initial category load based on default toggle
+        // Ensure toggle button state is respected for initial category population
+        updateCategoryComboBox(expenseToggleButton.isSelected()); 
     }
 
 
@@ -150,15 +152,20 @@ public class TransactionViewController {
     private void handleBackButtonAction(ActionEvent event) {
         try {
             Stage stage = (Stage) backButton.getScene().getWindow();
+            // Attempt to detach old root explicitly
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane()); 
+            }
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
             // Pass all four services
             ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
 
-            Scene scene = new Scene(startScreenRoot);
-            stage.setScene(scene);
-            stage.setTitle("个人财务管理器 - JavaFX");
+            Scene newScene = new Scene(startScreenRoot, 1200, 800); // Updated size
+            stage.setScene(newScene);
+            stage.setTitle("个人财务管理器");
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("错误", "无法加载主菜单界面: " + e.getMessage());

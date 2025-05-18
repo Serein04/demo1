@@ -246,22 +246,20 @@ public class BudgetViewController {
     private void handleBackButtonAction(ActionEvent event) {
         try {
             Stage stage = (Stage) backButton.getScene().getWindow();
-            Parent root = FXMLLoader.load(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
-            // We need to pass services back to StartScreenController if it's re-created this way,
-            // or better, have a main navigation controller.
-            // For simplicity now, this just loads StartScreen.
-            // A more robust navigation would re-use the StartScreenController instance or pass services.
+            // Attempt to detach old root explicitly
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane());
+            }
             
-            // To pass services correctly if StartScreenController is re-instantiated:
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
             // Pass all four services
             ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
 
-            Scene scene = new Scene(startScreenRoot);
-            stage.setScene(scene);
-            stage.setTitle("个人财务管理器 - JavaFX");
+            Scene newScene = new Scene(startScreenRoot, 1200, 800); // Updated size
+            stage.setScene(newScene);
+            stage.setTitle("个人财务管理器");
         } catch (IOException e) {
             e.printStackTrace();
             showAlert("错误", "无法加载主菜单界面: " + e.getMessage());
