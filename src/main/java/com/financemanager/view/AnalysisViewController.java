@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.financemanager.ai.AIService; // Import AIService
 import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
@@ -44,6 +45,7 @@ public class AnalysisViewController {
     private BudgetManager budgetManager; // For consistent navigation back
     private TransactionClassifier transactionClassifier; // For consistent navigation back
     private ExpenseAnalyzer expenseAnalyzer;
+    private AIService aiService; // Add AIService field
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final Font TITLE_FONT = Font.font("System", FontWeight.BOLD, 18);
@@ -55,11 +57,12 @@ public class AnalysisViewController {
         System.out.println("AnalysisViewController initialized. Services need proper injection.");
     }
 
-    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea) {
+    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea, AIService as) {
         this.transactionManager = tm;
         this.budgetManager = bm;
         this.transactionClassifier = tc;
         this.expenseAnalyzer = ea;
+        this.aiService = as; // Store AIService
     }
 
     @FXML
@@ -204,7 +207,7 @@ public class AnalysisViewController {
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
             // Pass all services needed by StartScreenController and its subsequent views
-            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
+            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService); 
             stage.setScene(new Scene(startScreenRoot, 1200, 800)); // Updated size
             stage.setTitle("个人财务管理器");
         } catch (IOException e) {

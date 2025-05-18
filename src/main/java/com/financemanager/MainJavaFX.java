@@ -49,7 +49,7 @@ public class MainJavaFX extends Application {
 
             // Get the controller and pass services
             StartScreenController controller = loader.getController();
-            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); // Pass ExpenseAnalyzer
+            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService); // Pass AIService
 
             Scene scene = new Scene(root, 1200, 800); // Updated size
             primaryStage.setTitle("个人财务管理器");

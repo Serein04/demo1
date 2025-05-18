@@ -2,7 +2,8 @@ package com.financemanager.view;
 
 import java.io.IOException;
 
-import com.financemanager.ai.ExpenseAnalyzer; // Import ExpenseAnalyzer
+import com.financemanager.ai.AIService; // Import AIService
+import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
 import com.financemanager.model.TransactionManager;
@@ -32,16 +33,18 @@ public class StartScreenController {
     private TransactionManager transactionManager;
     private BudgetManager budgetManager;
     private TransactionClassifier transactionClassifier;
-    private ExpenseAnalyzer expenseAnalyzer; // Add ExpenseAnalyzer field
+    private ExpenseAnalyzer expenseAnalyzer;
+    private AIService aiService; // Add AIService field
 
     // Method to receive services from MainJavaFX
     public void setServices(TransactionManager transactionManager, BudgetManager budgetManager, 
-                            TransactionClassifier transactionClassifier, ExpenseAnalyzer expenseAnalyzer) {
+                            TransactionClassifier transactionClassifier, ExpenseAnalyzer expenseAnalyzer, AIService aiService) {
         this.transactionManager = transactionManager;
         this.budgetManager = budgetManager;
         this.transactionClassifier = transactionClassifier;
-        this.expenseAnalyzer = expenseAnalyzer; // Store ExpenseAnalyzer
-        System.out.println("Services (TM, BM, TC, EA) set in StartScreenController.");
+        this.expenseAnalyzer = expenseAnalyzer;
+        this.aiService = aiService; // Store AIService
+        System.out.println("Services (TM, BM, TC, EA, AS) set in StartScreenController.");
     }
 
     // Initialize method (called after FXML loading)
@@ -70,8 +73,8 @@ public class StartScreenController {
             Parent transactionViewRoot = loader.load();
 
             TransactionViewController controller = loader.getController();
-            // Pass all four services to TransactionViewController
-            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
+            // Pass all five services to TransactionViewController
+            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService); 
 
             Scene newScene = new Scene(transactionViewRoot, 1200, 800); // Updated size
             stage.setScene(newScene);
@@ -102,8 +105,8 @@ public class StartScreenController {
             Parent budgetViewRoot = loader.load();
 
             BudgetViewController controller = loader.getController();
-            // Pass ExpenseAnalyzer as well to BudgetViewController
-            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer);
+            // Pass ExpenseAnalyzer and AIService as well to BudgetViewController
+            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService);
 
             Scene newScene = new Scene(budgetViewRoot, 1200, 800); // Updated size
             stage.setScene(newScene);
@@ -133,7 +136,7 @@ public class StartScreenController {
             Parent analysisViewRoot = loader.load();
 
             AnalysisViewController controller = loader.getController();
-            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer);
+            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService);
 
             Scene newScene = new Scene(analysisViewRoot, 1200, 800); // Updated size
             stage.setScene(newScene);
@@ -148,7 +151,31 @@ public class StartScreenController {
     @FXML
     private void handleAiButtonAction(ActionEvent event) {
         System.out.println("AI Assistant Button Clicked!");
-        // TODO: Implement navigation to AI Assistant module
+        if (transactionManager == null || budgetManager == null || transactionClassifier == null || expenseAnalyzer == null || aiService == null) {
+            System.err.println("Services not fully set in StartScreenController. Cannot navigate to AIAssistantView.");
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, "核心服务未初始化，无法打开AI助手。").showAndWait();
+            return;
+        }
+        try {
+            Stage stage = (Stage) aiButton.getScene().getWindow();
+            if (stage.getScene() != null && stage.getScene().getRoot() != null) {
+                stage.getScene().setRoot(new javafx.scene.layout.Pane());
+            }
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/AIAssistantView.fxml"));
+            Parent aiAssistantViewRoot = loader.load();
+
+            AIAssistantViewController controller = loader.getController();
+            controller.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService);
+
+            Scene newScene = new Scene(aiAssistantViewRoot, 1200, 800);
+            stage.setScene(newScene);
+            stage.setTitle("AI助手 - JavaFX");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, "无法加载AI助手界面: " + e.getMessage()).showAndWait();
+        }
     }
 
     // Placeholder for navigation logic

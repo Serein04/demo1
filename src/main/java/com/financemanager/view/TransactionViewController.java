@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
-import com.financemanager.ai.ExpenseAnalyzer; // Added import
+import com.financemanager.ai.AIService; // Added import
+import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
 import com.financemanager.model.Transaction;
@@ -88,7 +89,8 @@ public class TransactionViewController {
     private TransactionManager transactionManager;
     private TransactionClassifier transactionClassifier;
     private BudgetManager budgetManager;
-    private ExpenseAnalyzer expenseAnalyzer; // Added ExpenseAnalyzer field
+    private ExpenseAnalyzer expenseAnalyzer;
+    private AIService aiService; // Added AIService field
     // private MainFrame mainFrame; // In JavaFX, navigation is handled differently
 
     private static final String[] PAYMENT_METHODS = {"现金", "信用卡", "借记卡", "微信", "支付宝", "其他"};
@@ -135,11 +137,12 @@ public class TransactionViewController {
     }
     
     // This method should be called from where this view is created, passing the necessary services.
-    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea) {
+    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea, AIService as) {
         this.transactionManager = tm;
         this.budgetManager = bm; 
         this.transactionClassifier = tc;
-        this.expenseAnalyzer = ea; // Store ExpenseAnalyzer
+        this.expenseAnalyzer = ea;
+        this.aiService = as; // Store AIService
         
         // Now that services are set, load initial data and update UI elements dependent on services
         loadTransactions();
@@ -160,8 +163,8 @@ public class TransactionViewController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
-            // Pass all four services
-            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
+            // Pass all five services
+            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService); 
 
             Scene newScene = new Scene(startScreenRoot, 1200, 800); // Updated size
             stage.setScene(newScene);

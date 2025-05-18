@@ -6,7 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.financemanager.ai.ExpenseAnalyzer; // Import ExpenseAnalyzer
+import com.financemanager.ai.AIService; // Import AIService
+import com.financemanager.ai.ExpenseAnalyzer;
 import com.financemanager.ai.TransactionClassifier;
 import com.financemanager.model.BudgetManager;
 import com.financemanager.model.Transaction;
@@ -65,7 +66,8 @@ public class BudgetViewController {
     private TransactionManager transactionManager;
     private BudgetManager budgetManager;
     private TransactionClassifier transactionClassifier;
-    private ExpenseAnalyzer expenseAnalyzer; // Add ExpenseAnalyzer field
+    private ExpenseAnalyzer expenseAnalyzer;
+    private AIService aiService; // Add AIService field
 
     private ObservableList<BudgetRow> budgetTableData = FXCollections.observableArrayList();
     private ObservableList<PieChart.Data> budgetPieChartData = FXCollections.observableArrayList();
@@ -88,11 +90,12 @@ public class BudgetViewController {
         System.out.println("BudgetViewController initialized. Services need proper injection.");
     }
 
-    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea) {
+    public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea, AIService as) {
         this.transactionManager = tm;
         this.budgetManager = bm;
         this.transactionClassifier = tc;
-        this.expenseAnalyzer = ea; // Store ExpenseAnalyzer
+        this.expenseAnalyzer = ea;
+        this.aiService = as; // Store AIService
 
         populateCategoryComboBox();
         loadBudgetData();
@@ -254,8 +257,8 @@ public class BudgetViewController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/StartScreen.fxml"));
             Parent startScreenRoot = loader.load();
             StartScreenController ssc = loader.getController();
-            // Pass all four services
-            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer); 
+            // Pass all five services
+            ssc.setServices(transactionManager, budgetManager, transactionClassifier, expenseAnalyzer, aiService); 
 
             Scene newScene = new Scene(startScreenRoot, 1200, 800); // Updated size
             stage.setScene(newScene);
