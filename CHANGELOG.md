@@ -64,14 +64,15 @@
 
 分工：
 
-hxp     AIService.java               AIAssistantViewController.java     AIAssistantView.fxml
+hxp     AIService.java               AIAssistantViewController.java         AIAssistantView.fxml        ai助手
 
-lzk     Main.java                    MainJavaFX.java                    StartScreenController.java         StartScreenView.fxml
+lzk     TransactionClassifier.java   TransactionEditDialogController.java   TransactionEditDialog.fxml  ai分类及交易记录编辑
 
-qyh     ExpenseAnalyzer.java         AnalysisViewController.java        AnalysisView.fxml
+qyh     ExpenseAnalyzer.java         AnalysisViewController.java            AnalysisView.fxml           分析报告
 
-wzh     BudgetManager.java           BudgetViewController.java          BudgetView.fxml
+wzh     BudgetManager.java           BudgetViewController.java              BudgetView.fxml             预算管理
 
-qsy     TransactionManager.java      TransactionViewController.java     TransactionView.fxml
+qsy     Transaction.java             TransactionManager.java                TransactionViewController.java     TransactionView.fxml    交易记录管理
 
-xhf     Transaction.java             TransactionClassifier.java         TransactionEditDialog.java         
+xhf     Main.java                    MainJavaFX.java                        StartScreenController.java         StartScreenView.fxml     test     项目整体架构、主界面、测试
+
