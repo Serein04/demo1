@@ -15,6 +15,7 @@ public class Transaction {
     private String description;
     private boolean isExpense; // true表示支出，false表示收入
     private String paymentMethod; // 支付方式（现金、信用卡、微信、支付宝等）
+    private transient String transientAiSuggestedCategory; // Not part of core data, for UI state
     
     /**
      * 构造函数
@@ -103,6 +104,14 @@ public class Transaction {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public String getTransientAiSuggestedCategory() {
+        return transientAiSuggestedCategory;
+    }
+
+    public void setTransientAiSuggestedCategory(String transientAiSuggestedCategory) {
+        this.transientAiSuggestedCategory = transientAiSuggestedCategory;
     }
     
     @Override

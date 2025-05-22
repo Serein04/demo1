@@ -175,9 +175,13 @@ public class TransactionClassifier {
      * 添加用户自定义的关键词
      */
     public void addCategoryKeyword(String category, String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return; // Do not add null or empty keywords
+        }
         List<String> keywords = categoryKeywords.getOrDefault(category, new ArrayList<>());
-        if (!keywords.contains(keyword)) {
-            keywords.add(keyword);
+        String trimmedKeyword = keyword.trim(); // Use trimmed keyword
+        if (!keywords.contains(trimmedKeyword)) {
+            keywords.add(trimmedKeyword);
             categoryKeywords.put(category, keywords);
             saveUserKeywords();
         }

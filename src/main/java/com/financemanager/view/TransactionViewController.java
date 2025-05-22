@@ -36,6 +36,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class TransactionViewController {
@@ -131,6 +132,21 @@ public class TransactionViewController {
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("type"));
         paymentMethodColumn.setCellValueFactory(new PropertyValueFactory<>("paymentMethod"));
         transactionTable.setItems(transactionData);
+
+        // Row factory for highlighting
+        transactionTable.setRowFactory(tv -> new javafx.scene.control.TableRow<TransactionRow>() {
+            @Override
+            protected void updateItem(TransactionRow item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setStyle("");
+                } else if (item.isNeedsAiAttention()) {
+                    setStyle("-fx-background-color: #FFF9C4;"); // Light yellow
+                } else {
+                    setStyle("");
+                }
+            }
+        });
 
         // Initialize ComboBoxes
         paymentMethodComboBox.getItems().addAll(PAYMENT_METHODS);
@@ -241,7 +257,14 @@ public class TransactionViewController {
         transactionData.clear();
         List<Transaction> transactions = transactionManager.getAllTransactions();
         for (Transaction t : transactions) {
-            transactionData.add(new TransactionRow(t));
+            TransactionRow row = new TransactionRow(t);
+            // Check if this transaction had a differing AI suggestion that needs attention
+            if (t.getTransientAiSuggestedCategory() != null && 
+                !t.getTransientAiSuggestedCategory().equals(t.getCategory())) {
+                row.setPendingAiSuggestedCategory(t.getTransientAiSuggestedCategory());
+                row.setNeedsAiAttention(true);
+            }
+            transactionData.add(row);
         }
         // TODO: Call to refresh budget panel if it exists and is listening
     }
@@ -255,31 +278,37 @@ public class TransactionViewController {
         try {
             double amountVal = Double.parseDouble(amountField.getText());
             LocalDate dateVal = datePicker.getValue();
-            String categoryVal = categoryComboBox.getValue();
+            String userCategory = categoryComboBox.getValue(); // User's chosen category
             String descriptionVal = descriptionField.getText();
             boolean isExpense = expenseToggleButton.isSelected();
             String paymentMethodVal = isExpense ? paymentMethodComboBox.getValue() : "";
 
-            if (dateVal == null || categoryVal == null) {
+            if (dateVal == null || userCategory == null) {
                 showAlert("输入错误", "日期和类别不能为空。");
                 return;
             }
 
-            Transaction transaction = new Transaction(amountVal, dateVal, categoryVal, descriptionVal, isExpense, paymentMethodVal);
-            transactionManager.addTransaction(transaction);
+            Transaction transaction = new Transaction(amountVal, dateVal, userCategory, descriptionVal, isExpense, paymentMethodVal);
             
-            // AI Classification (optional, similar to Swing)
+            // AI Classification
+            String aiSuggestedCategory = null;
+            boolean needsAttention = false;
             try {
-                String aiCategory = transactionClassifier.classifyTransaction(transaction);
-                if (!aiCategory.equals(categoryVal)) {
-                    transactionClassifier.learnFromUserCorrection(transaction, aiCategory, categoryVal);
+                aiSuggestedCategory = transactionClassifier.classifyTransaction(transaction);
+                if (!aiSuggestedCategory.equals(userCategory)) {
+                    transaction.setTransientAiSuggestedCategory(aiSuggestedCategory); // Store AI suggestion if different
+                    needsAttention = true; // Mark for attention
+                    showAlert("AI建议", String.format("AI建议将此交易分类为 '%s'。\n您选择的是 '%s'。\n此记录将以黄色高亮显示，您可以稍后编辑以确认或修正。", aiSuggestedCategory, userCategory));
+                } else {
+                    showAlert("成功", "交易记录添加成功。");
                 }
-                 showAlert("成功", "交易记录添加成功。");
             } catch (Exception aiEx) {
                  showAlert("AI分类警告", String.format("交易记录已添加,但AI分类出现错误:%s\n请检查交易描述是否完整。", aiEx.getMessage()));
             }
+            
+            transactionManager.addTransaction(transaction); // Add to manager (which also saves)
 
-            loadTransactions();
+            loadTransactions(); // Reload all transactions to reflect new one with potential AI state
             clearInputFields();
         } catch (NumberFormatException e) {
             showAlert("输入错误", "请输入有效的金额。");
@@ -326,34 +355,45 @@ public class TransactionViewController {
             }
             categoryComboBox.setValue(selectedTransaction.getCategory()); // Ensure categories are loaded for the type
 
-            // Temporarily change Add button to Save, and implement save logic
-            // This is a hack. A dedicated dialog is better.
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "编辑功能需要一个专用的对话框。当前实现为占位符。", ButtonType.OK);
-            alert.setHeaderText("编辑功能提示");
-            alert.showAndWait();
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/TransactionEditDialog.fxml"));
+                Parent dialogRoot = loader.load();
+                TransactionEditDialogController controller = loader.getController();
+                // Pass the original AI suggestion if this row needs attention
+                String pendingAISuggestion = selectedRow.isNeedsAiAttention() ? selectedRow.getPendingAiSuggestedCategory() : null;
+                controller.setTransaction(selectedTransaction, transactionManager, transactionClassifier, pendingAISuggestion);
 
-            // TODO: Implement a proper TransactionEditDialog for JavaFX
-            // Example:
-            // try {
-            // FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/TransactionEditDialog.fxml"));
-            // Parent dialogRoot = loader.load();
-            // TransactionEditDialogController controller = loader.getController();
-            // controller.setTransaction(selectedTransaction, transactionManager, transactionClassifier);
-            // Stage dialogStage = new Stage();
-            // dialogStage.setTitle("编辑交易");
-            // dialogStage.initModality(Modality.WINDOW_MODAL);
-            // dialogStage.initOwner(transactionRootPane.getScene().getWindow());
-            // Scene dialogScene = new Scene(dialogRoot);
-            // dialogStage.setScene(dialogScene);
-            // dialogStage.showAndWait();
-            // if (controller.isConfirmed()) {
-            // loadTransactions();
-            // }
-            // } catch (IOException e) {
-            // e.printStackTrace();
-            // showAlert("Error", "Could not open edit dialog.");
-            // }
+                Stage dialogStage = new Stage();
+                dialogStage.setTitle("编辑交易记录");
+                dialogStage.initModality(Modality.WINDOW_MODAL);
+                dialogStage.initOwner(transactionRootPane.getScene().getWindow()); // Set owner
+                Scene dialogScene = new Scene(dialogRoot);
+                dialogStage.setScene(dialogScene);
 
+                dialogStage.showAndWait(); // Show dialog and wait for it to close
+
+                if (controller.isConfirmed()) {
+                    // The transaction object (selectedTransaction) was modified directly by the dialog controller.
+                    // Need to ensure TransactionManager persists this change.
+                    // If TransactionManager works with a list of objects and saves the whole list,
+                    // then just refreshing the view might be enough if the list reference is the same.
+                    // A more explicit way: transactionManager.updateTransaction(selectedTransaction);
+                    // or transactionManager.saveTransactions(); if that's the persistence mechanism.
+                    
+                    // For now, assume TransactionManager needs to be told to save.
+                    // This is a placeholder for actual persistence logic.
+                    // If TransactionManager automatically saves or if selectedTransaction is a direct reference
+                    // from its list, this explicit save might not be needed before loadTransactions().
+                    // transactionManager.updateTransaction(selectedTransaction) is called within the dialog's save action.
+                    // The saveTransactions() is also called within updateTransaction.
+                    // So, we just need to refresh the view here.
+                    loadTransactions(); // Refresh the table in the main view
+                    showAlert("成功", "交易记录更新成功。");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                showAlert("错误", "无法打开编辑对话框: " + e.getMessage());
+            }
         } else {
             showAlert("错误", "无法加载选中的交易记录。");
         }
@@ -434,20 +474,39 @@ public class TransactionViewController {
     // Using a dedicated Row class is often cleaner for UI-specific formatting.
     public static class TransactionRow {
         private final Transaction transaction;
+        private String pendingAiSuggestedCategory; // Store AI's suggestion if different from user's
+        private boolean needsAiAttention;          // Flag for yellow highlighting
 
         public TransactionRow(Transaction transaction) {
             this.transaction = transaction;
+            this.needsAiAttention = false; // Default to false
+            this.pendingAiSuggestedCategory = null;
         }
 
         public String getId() { return transaction.getId(); }
-        public String getAmountString() { return String.format("%.2f", transaction.getAmount()); } // Original for display if needed elsewhere
-        public double getAmountNumeric() { return transaction.getAmount(); } // For sorting
+        public String getAmountString() { return String.format("%.2f", transaction.getAmount()); }
+        public double getAmountNumeric() { return transaction.getAmount(); }
         public String getDate() { return transaction.getDate().format(DATE_FORMATTER); }
         public String getCategory() { return transaction.getCategory(); }
         public String getDescription() { return transaction.getDescription(); }
         public String getType() { return transaction.isExpense() ? "支出" : "收入"; }
         public String getPaymentMethod() { return transaction.getPaymentMethod(); }
-        // Original Transaction object if needed for operations like edit/delete
         public Transaction getOriginalTransaction() { return transaction; }
+
+        public String getPendingAiSuggestedCategory() {
+            return pendingAiSuggestedCategory;
+        }
+
+        public void setPendingAiSuggestedCategory(String pendingAiSuggestedCategory) {
+            this.pendingAiSuggestedCategory = pendingAiSuggestedCategory;
+        }
+
+        public boolean isNeedsAiAttention() {
+            return needsAiAttention;
+        }
+
+        public void setNeedsAiAttention(boolean needsAiAttention) {
+            this.needsAiAttention = needsAiAttention;
+        }
     }
 }
