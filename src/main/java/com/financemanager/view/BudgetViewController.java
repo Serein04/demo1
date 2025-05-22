@@ -164,7 +164,8 @@ public class BudgetViewController {
         this.aiService = as; // Store AIService
 
         populateCategoryComboBox();
-        loadBudgetData();
+        refreshBudgetUIData(); // Load text fields and table
+        updateBudgetPieChart(); // Load pie chart separately on initial load
     }
 
     private void populateCategoryComboBox() {
@@ -198,17 +199,18 @@ public class BudgetViewController {
     }
 
 
-    private void loadBudgetData() {
+    private void refreshBudgetUIData() { // Renamed and modified from loadBudgetData
         if (budgetManager == null || transactionManager == null) {
-            System.err.println("Managers not initialized in loadBudgetData.");
+            System.err.println("Managers not initialized in refreshBudgetUIData.");
             return;
         }
+        // Update text fields related to budget
         monthlyBudgetField.setText(String.format("%.2f", budgetManager.getMonthlyBudget()));
         savingsGoalField.setText(String.format("%.2f", budgetManager.getSavingsGoal()));
-        displayCategoryBudget(); // Ensure category budget field is updated
+        displayCategoryBudget(); // Ensure category budget field for selected category is updated
 
+        // Update the budget table
         updateBudgetTable();
-        updateBudgetPieChart();
     }
 
     private void updateBudgetTable() {
@@ -276,7 +278,7 @@ public class BudgetViewController {
             double amount = Double.parseDouble(monthlyBudgetField.getText());
             budgetManager.setMonthlyBudget(amount);
             showAlert("成功", "月度预算设置成功。");
-            loadBudgetData();
+            refreshBudgetUIData(); // Only refresh budget text fields and table
         } catch (NumberFormatException e) {
             showAlert("输入错误", "请输入有效的金额。");
         }
@@ -288,7 +290,7 @@ public class BudgetViewController {
             double amount = Double.parseDouble(savingsGoalField.getText());
             budgetManager.setSavingsGoal(amount);
             showAlert("成功", "储蓄目标设置成功。");
-            loadBudgetData(); // Savings goal doesn't directly affect table/chart but good to refresh all
+            refreshBudgetUIData(); // Refresh relevant UI parts
         } catch (NumberFormatException e) {
             showAlert("输入错误", "请输入有效的金额。");
         }
@@ -305,7 +307,7 @@ public class BudgetViewController {
             double amount = Double.parseDouble(categoryBudgetField.getText());
             budgetManager.setCategoryBudget(category, amount);
             showAlert("成功", "类别预算 '" + category + "' 设置成功。");
-            loadBudgetData();
+            refreshBudgetUIData(); // Only refresh budget text fields and table
         } catch (NumberFormatException e) {
             showAlert("输入错误", "请输入有效的金额。");
         }

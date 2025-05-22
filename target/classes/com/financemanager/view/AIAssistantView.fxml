@@ -23,6 +23,8 @@
             </BorderPane.margin>
             <Button fx:id="backButton" mnemonicParsing="false" onAction="#handleBackButtonAction" text="返回主菜单" />
             <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="AI 助手" HBox.hgrow="ALWAYS" alignment="CENTER" maxWidth="Infinity"/>
+            <!-- Invisible button for spacing to help center the Label -->
+            <Button text="返回主菜单" visible="false" managed="true" disable="true" style="-fx-opacity: 0;"/>
         </HBox>
     </top>
     <center>
