@@ -24,11 +24,13 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.stage.Stage;
+import javafx.scene.control.cell.PropertyValueFactory; // Added for custom cell formatting
+import javafx.stage.Stage; // Added for custom cell formatting
 
 public class BudgetViewController {
 
@@ -53,11 +55,11 @@ public class BudgetViewController {
     @FXML
     private TableColumn<BudgetRow, String> categoryColumn;
     @FXML
-    private TableColumn<BudgetRow, String> budgetAmountColumn;
+    private TableColumn<BudgetRow, Double> budgetAmountColumn; // Changed to Double
     @FXML
-    private TableColumn<BudgetRow, String> currentSpendingColumn;
+    private TableColumn<BudgetRow, Double> currentSpendingColumn; // Changed to Double
     @FXML
-    private TableColumn<BudgetRow, String> remainingAmountColumn;
+    private TableColumn<BudgetRow, Double> remainingAmountColumn; // Changed to Double
     @FXML
     private TableColumn<BudgetRow, String> statusColumn;
     @FXML
@@ -76,11 +78,75 @@ public class BudgetViewController {
     public void initialize() {
         // Configure TableView columns
         categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
-        budgetAmountColumn.setCellValueFactory(new PropertyValueFactory<>("budgetAmount"));
-        currentSpendingColumn.setCellValueFactory(new PropertyValueFactory<>("currentSpending"));
-        remainingAmountColumn.setCellValueFactory(new PropertyValueFactory<>("remainingAmount"));
+
+        // Budget Amount Column
+        budgetAmountColumn.setCellValueFactory(new PropertyValueFactory<>("budgetAmountNumeric"));
+        budgetAmountColumn.setCellFactory(column -> new TableCell<BudgetRow, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    // Check if the row is for an unbudgeted item or "总计" to decide format
+                    BudgetRow row = getTableView().getItems().get(getIndex());
+                    if (row.isUnbudgeted() && item == 0.0) {
+                        setText("未设置");
+                    } else {
+                        setText(String.format("%.2f", item));
+                    }
+                }
+            }
+        });
+
+        // Current Spending Column
+        currentSpendingColumn.setCellValueFactory(new PropertyValueFactory<>("currentSpendingNumeric"));
+        currentSpendingColumn.setCellFactory(column -> new TableCell<BudgetRow, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : String.format("%.2f", item));
+            }
+        });
+
+        // Remaining Amount Column
+        remainingAmountColumn.setCellValueFactory(new PropertyValueFactory<>("remainingAmountNumeric"));
+        remainingAmountColumn.setCellFactory(column -> new TableCell<BudgetRow, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                     BudgetRow row = getTableView().getItems().get(getIndex());
+                    if (row.isUnbudgeted()) {
+                         setText("N/A");
+                    } else {
+                        setText(String.format("%.2f", item));
+                    }
+                }
+            }
+        });
+        
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
         budgetTable.setItems(budgetTableData);
+
+        budgetTable.setRowFactory(tv -> new TableRow<BudgetRow>() {
+            @Override
+            protected void updateItem(BudgetRow item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setStyle("");
+                } else {
+                    // Check if the status is "超支"
+                    if ("超支".equals(item.getStatus())) {
+                        setStyle("-fx-background-color: #FFCDD2;"); // Light red color for over-budget rows
+                    } else {
+                        setStyle(""); // Default style
+                    }
+                }
+            }
+        });
 
         // Configure PieChart
         budgetPieChart.setData(budgetPieChartData);
@@ -303,9 +369,16 @@ public class BudgetViewController {
 
 
         public String getCategory() { return category; }
-        public String getBudgetAmount() { return isUnbudgeted && budgetAmount == 0.0 ? "未设置" : String.format("%.2f", budgetAmount); }
-        public String getCurrentSpending() { return String.format("%.2f", currentSpending); }
-        public String getRemainingAmount() { return isUnbudgeted ? "N/A" : String.format("%.2f", remainingAmount); }
+        // Original String returning getters for PropertyValueFactory if still used elsewhere or for non-numeric display needs
+        public String getBudgetAmountString() { return isUnbudgeted && budgetAmount == 0.0 ? "未设置" : String.format("%.2f", budgetAmount); }
+        public String getCurrentSpendingString() { return String.format("%.2f", currentSpending); }
+        public String getRemainingAmountString() { return isUnbudgeted ? "N/A" : String.format("%.2f", remainingAmount); }
         public String getStatus() { return status; }
+
+        // Numeric getters for sorting and typed columns
+        public double getBudgetAmountNumeric() { return budgetAmount; }
+        public double getCurrentSpendingNumeric() { return currentSpending; }
+        public double getRemainingAmountNumeric() { return remainingAmount; }
+        public boolean isUnbudgeted() { return isUnbudgeted; } // Getter for isUnbudgeted
     }
 }

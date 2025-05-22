@@ -27,6 +27,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -48,7 +49,7 @@ public class TransactionViewController {
     @FXML
     private TableColumn<TransactionRow, String> idColumn;
     @FXML
-    private TableColumn<TransactionRow, String> amountColumn;
+    private TableColumn<TransactionRow, Double> amountColumn; // Changed to Double
     @FXML
     private TableColumn<TransactionRow, String> dateColumn;
     @FXML
@@ -110,7 +111,20 @@ public class TransactionViewController {
 
         // Configure TableView columns
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
-        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
+
+        amountColumn.setCellValueFactory(new PropertyValueFactory<>("amountNumeric"));
+        amountColumn.setCellFactory(column -> new TableCell<TransactionRow, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%.2f", item));
+                }
+            }
+        });
+
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         categoryColumn.setCellValueFactory(new PropertyValueFactory<>("category"));
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
@@ -426,7 +440,8 @@ public class TransactionViewController {
         }
 
         public String getId() { return transaction.getId(); }
-        public String getAmount() { return String.format("%.2f", transaction.getAmount()); }
+        public String getAmountString() { return String.format("%.2f", transaction.getAmount()); } // Original for display if needed elsewhere
+        public double getAmountNumeric() { return transaction.getAmount(); } // For sorting
         public String getDate() { return transaction.getDate().format(DATE_FORMATTER); }
         public String getCategory() { return transaction.getCategory(); }
         public String getDescription() { return transaction.getDescription(); }

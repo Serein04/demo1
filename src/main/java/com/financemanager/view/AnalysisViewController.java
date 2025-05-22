@@ -15,6 +15,7 @@ import com.financemanager.model.BudgetManager;
 import com.financemanager.model.Transaction;
 import com.financemanager.model.TransactionManager;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -27,6 +28,10 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font; // Added import for HashMap
 import javafx.scene.text.FontWeight;
@@ -116,14 +121,38 @@ public class AnalysisViewController {
         if (abnormalExpenses.isEmpty()) {
             addNoDataLabel("未检测到异常支出。");
         } else {
-            VBox abnormalList = new VBox(5);
-            for (Transaction t : abnormalExpenses) {
-                Label l = new Label(String.format("  • %s: %.2f元 (%s)",
-                        t.getCategory(), t.getAmount(), t.getDate().format(DATE_FORMATTER)));
-                l.setFont(TEXT_FONT);
-                abnormalList.getChildren().add(l);
-            }
-            reportContentVBox.getChildren().add(abnormalList);
+            TableView<Transaction> abnormalExpensesTable = new TableView<>();
+            abnormalExpensesTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+            TableColumn<Transaction, String> dateCol = new TableColumn<>("日期");
+            dateCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getDate().format(DATE_FORMATTER)));
+
+            TableColumn<Transaction, String> categoryCol = new TableColumn<>("类别");
+            categoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
+
+            TableColumn<Transaction, Double> amountCol = new TableColumn<>("金额");
+            amountCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
+            amountCol.setCellFactory(column -> new TableCell<Transaction, Double>() {
+                @Override
+                protected void updateItem(Double item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                    } else {
+                        setText(String.format("%.2f", item));
+                    }
+                }
+            });
+            
+            TableColumn<Transaction, String> descriptionCol = new TableColumn<>("描述");
+            descriptionCol.setCellValueFactory(new PropertyValueFactory<>("description"));
+
+
+            abnormalExpensesTable.getColumns().addAll(dateCol, categoryCol, amountCol, descriptionCol);
+            abnormalExpensesTable.setItems(FXCollections.observableArrayList(abnormalExpenses));
+            // Set preferred height for the table to avoid it taking too much space or too little
+            abnormalExpensesTable.setPrefHeight(250); // Adjust as needed, e.g., 30 per row + header
+            reportContentVBox.getChildren().add(abnormalExpensesTable);
         }
 
         // Seasonal Patterns
@@ -132,14 +161,24 @@ public class AnalysisViewController {
         if (seasonalPatterns.isEmpty()) {
             addNoDataLabel("未检测到明显的季节性支出模式。");
         } else {
-            VBox seasonalList = new VBox(5);
+            TableView<SeasonalPatternRow> seasonalPatternsTable = new TableView<>();
+            seasonalPatternsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+            
+            TableColumn<SeasonalPatternRow, String> monthCol = new TableColumn<>("月份");
+            monthCol.setCellValueFactory(new PropertyValueFactory<>("month"));
+            
+            TableColumn<SeasonalPatternRow, String> categoriesCol = new TableColumn<>("相关支出类别");
+            categoriesCol.setCellValueFactory(new PropertyValueFactory<>("categories"));
+            
+            seasonalPatternsTable.getColumns().addAll(monthCol, categoriesCol);
+            
+            ObservableList<SeasonalPatternRow> seasonalData = FXCollections.observableArrayList();
             for (Map.Entry<Month, List<String>> entry : seasonalPatterns.entrySet()) {
-                Label l = new Label(String.format("  • %s: %s",
-                        entry.getKey().toString(), String.join(", ", entry.getValue())));
-                l.setFont(TEXT_FONT);
-                seasonalList.getChildren().add(l);
+                seasonalData.add(new SeasonalPatternRow(entry.getKey().toString(), String.join(", ", entry.getValue())));
             }
-            reportContentVBox.getChildren().add(seasonalList);
+            seasonalPatternsTable.setItems(seasonalData);
+            seasonalPatternsTable.setPrefHeight(250); // Adjust as needed
+            reportContentVBox.getChildren().add(seasonalPatternsTable);
         }
         
         // Saving Opportunities
@@ -240,5 +279,32 @@ public class AnalysisViewController {
             }
         }
         return categorySpending;
+    }
+
+    // Inner class for Seasonal Patterns TableView
+    public static class SeasonalPatternRow {
+        private final SimpleStringProperty month;
+        private final SimpleStringProperty categories;
+
+        public SeasonalPatternRow(String month, String categories) {
+            this.month = new SimpleStringProperty(month);
+            this.categories = new SimpleStringProperty(categories);
+        }
+
+        public String getMonth() {
+            return month.get();
+        }
+
+        public SimpleStringProperty monthProperty() {
+            return month;
+        }
+
+        public String getCategories() {
+            return categories.get();
+        }
+
+        public SimpleStringProperty categoriesProperty() {
+            return categories;
+        }
     }
 }
