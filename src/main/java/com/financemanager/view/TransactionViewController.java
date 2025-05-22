@@ -336,25 +336,6 @@ public class TransactionViewController {
                 .orElse(null);
 
         if (selectedTransaction != null) {
-            // For JavaFX, we'd typically open a new dialog window (another FXML + Controller)
-            // This is a simplified placeholder. A proper edit dialog is needed.
-            // For now, let's just re-populate fields and change add button to save.
-            // This is NOT a good UX for editing, just a temporary measure.
-            // A true edit dialog (like TransactionEditDialog in Swing) should be created.
-            
-            amountField.setText(String.format("%.2f", selectedTransaction.getAmount()));
-            datePicker.setValue(selectedTransaction.getDate());
-            descriptionField.setText(selectedTransaction.getDescription());
-            if (selectedTransaction.isExpense()) {
-                expenseToggleButton.setSelected(true);
-                handleExpenseToggleAction(null); // Update UI state
-                paymentMethodComboBox.setValue(selectedTransaction.getPaymentMethod());
-            } else {
-                incomeToggleButton.setSelected(true);
-                handleIncomeToggleAction(null); // Update UI state
-            }
-            categoryComboBox.setValue(selectedTransaction.getCategory()); // Ensure categories are loaded for the type
-
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/financemanager/view/TransactionEditDialog.fxml"));
                 Parent dialogRoot = loader.load();
