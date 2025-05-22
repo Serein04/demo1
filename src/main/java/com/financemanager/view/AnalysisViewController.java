@@ -55,6 +55,7 @@ public class AnalysisViewController {
     @FXML
     public void initialize() {
         System.out.println("AnalysisViewController initialized. Services need proper injection.");
+        // Report generation will be triggered by setServices after services are injected.
     }
 
     public void setServices(TransactionManager tm, BudgetManager bm, TransactionClassifier tc, ExpenseAnalyzer ea, AIService as) {
@@ -63,6 +64,10 @@ public class AnalysisViewController {
         this.transactionClassifier = tc;
         this.expenseAnalyzer = ea;
         this.aiService = as; // Store AIService
+
+        // Automatically generate report now that services are injected
+        // We pass null as ActionEvent because it's not used in the method.
+        handleGenerateReportAction(null);
     }
 
     @FXML

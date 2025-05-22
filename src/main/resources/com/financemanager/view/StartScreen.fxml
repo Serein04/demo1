@@ -22,12 +22,12 @@
     </Label>
 
     <HBox alignment="CENTER" spacing="20.0">
-        <Button fx:id="transactionButton" onAction="#handleTransactionButtonAction" prefHeight="100.0" prefWidth="180.0" text="交易记录" style="-fx-font-size: 16px; -fx-base: #64B5F6;"/>
-        <Button fx:id="budgetButton" onAction="#handleBudgetButtonAction" prefHeight="100.0" prefWidth="180.0" text="预算管理" style="-fx-font-size: 16px; -fx-base: #81C784;"/>
+        <Button fx:id="transactionButton" onAction="#handleTransactionButtonAction" prefHeight="100.0" prefWidth="180.0" text="交易记录" style="-fx-font-size: 16px; -fx-base: #3675A4; -fx-text-fill: white;"/>
+        <Button fx:id="budgetButton" onAction="#handleBudgetButtonAction" prefHeight="100.0" prefWidth="180.0" text="预算管理" style="-fx-font-size: 16px; -fx-base: #3675A4; -fx-text-fill: white;"/>
     </HBox>
     <HBox alignment="CENTER" spacing="20.0">
-        <Button fx:id="analysisButton" onAction="#handleAnalysisButtonAction" prefHeight="100.0" prefWidth="180.0" text="分析报告" style="-fx-font-size: 16px; -fx-base: #EF9A9A;"/>
-        <Button fx:id="aiButton" onAction="#handleAiButtonAction" prefHeight="100.0" prefWidth="180.0" text="AI助手" style="-fx-font-size: 16px; -fx-base: #CE93D8;"/>
+        <Button fx:id="analysisButton" onAction="#handleAnalysisButtonAction" prefHeight="100.0" prefWidth="180.0" text="分析报告" style="-fx-font-size: 16px; -fx-base: #3675A4; -fx-text-fill: white;"/>
+        <Button fx:id="aiButton" onAction="#handleAiButtonAction" prefHeight="100.0" prefWidth="180.0" text="AI助手" style="-fx-font-size: 16px; -fx-base: #3675A4; -fx-text-fill: white;"/>
     </HBox>
 
     <VBox.margin>

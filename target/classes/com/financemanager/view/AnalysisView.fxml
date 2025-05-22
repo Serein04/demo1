@@ -21,7 +21,7 @@
             </BorderPane.margin>
             <Button fx:id="backButton" mnemonicParsing="false" onAction="#handleBackButtonAction" text="返回主菜单" />
             <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="分析报告" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" maxWidth="Infinity"/>
-            <Button fx:id="generateReportButton" mnemonicParsing="false" onAction="#handleGenerateReportAction" text="生成分析报告" />
+            <Button fx:id="generateReportButton" mnemonicParsing="false" onAction="#handleGenerateReportAction" text="更新报告" />
         </HBox>
     </top>
     <center>
@@ -32,7 +32,7 @@
                         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                     </padding>
                     <!-- Content will be dynamically added here by the controller -->
-                    <Label text="点击“生成分析报告”按钮以查看内容。" style="-fx-font-style: italic;">
+                    <Label text="报告内容自动生成中..." style="-fx-font-style: italic;">
                         <font>
                             <Font size="14.0"/>
                         </font>
