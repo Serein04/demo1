@@ -20,7 +20,7 @@
                 <Insets bottom="10.0" />
             </BorderPane.margin>
             <Button fx:id="backButton" mnemonicParsing="false" onAction="#handleBackButtonAction" text="返回主菜单" />
-            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="分析报告" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" maxWidth="Infinity"/>
+            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="分析报告" HBox.hgrow="ALWAYS" alignment="CENTER" maxWidth="Infinity"/>
             <Button fx:id="generateReportButton" mnemonicParsing="false" onAction="#handleGenerateReportAction" text="更新报告" />
         </HBox>
     </top>

@@ -22,7 +22,7 @@
                 <Insets bottom="10.0" />
             </BorderPane.margin>
             <Button fx:id="backButton" mnemonicParsing="false" onAction="#handleBackButtonAction" text="返回主菜单" />
-            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="AI 助手" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" maxWidth="Infinity"/>
+            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="AI 助手" HBox.hgrow="ALWAYS" alignment="CENTER" maxWidth="Infinity"/>
         </HBox>
     </top>
     <center>
